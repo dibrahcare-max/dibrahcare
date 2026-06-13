@@ -229,11 +229,7 @@ export default function ServicesPage() {
                   padding: '13px 32px', borderRadius: 10,
                   textDecoration: 'none', transition: 'opacity .2s',
                 }}>{(s as any).isCustom ? 'أرسل طلبك ←' : 'احجز هذه الخدمة ←'}</a>
-                {(s as any).isCustom && (
-                  <span style={{ display: 'inline-block', background: '#e53935', color: '#fff', fontSize: '.72rem', fontWeight: 800, padding: '3px 10px', borderRadius: 20, marginTop: 8 }}>
-                    ✨ جديد
-                  </span>
-                )}
+
 
               </div>
             </div>
