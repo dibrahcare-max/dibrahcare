@@ -241,11 +241,23 @@ export async function POST(req: NextRequest) {
               // الحجز موجود مسبقاً (مثل خدمة حسب الطلب) — نحدّث الحالة فقط
               console.log(`ℹ️  [callback] Booking already exists: ${attempt.booking_id} — updating payment status`)
               try {
+                // جيب الـ notes الحالية وأضف trackId وpaymentId
+                const { data: currentBk } = await supabaseAdmin
+                  .from('bookings')
+                  .select('notes')
+                  .eq('id', attempt.booking_id)
+                  .maybeSingle()
+                let currentNotes: any = {}
+                try { currentNotes = JSON.parse(currentBk?.notes || '{}') } catch {}
+                currentNotes.trackId = attempt.track_id
+                currentNotes.paymentId = paymentId || attempt.payment_id
+
                 await supabaseAdmin
                   .from('bookings')
                   .update({
                     payment_status: 'paid',
                     status: 'confirmed',
+                    notes: JSON.stringify(currentNotes),
                     updated_at: new Date().toISOString(),
                   })
                   .eq('id', attempt.booking_id)
