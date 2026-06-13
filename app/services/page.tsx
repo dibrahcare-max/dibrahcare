@@ -224,7 +224,7 @@ export default function ServicesPage() {
                 {/* زر الحجز */}
                 <a href={(s as any).isCustom ? '/book/custom' : `/auth?next=${encodeURIComponent('/book/' + s.id)}`} style={{
                   display: 'inline-block', alignSelf: 'flex-start',
-                  background: (s as any).isCustom ? '#e2ecd3' : 'var(--dark)', color: (s as any).isCustom ? 'var(--dark)' : '#F6F0D7',
+                  background: 'var(--dark)', color: '#F6F0D7',
                   fontSize: '.92rem', fontWeight: 800,
                   padding: '13px 32px', borderRadius: 10,
                   textDecoration: 'none', transition: 'opacity .2s',
