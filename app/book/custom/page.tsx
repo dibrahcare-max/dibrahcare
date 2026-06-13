@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Nav from '@/components/Nav'
 import Footer from '@/components/Footer'
@@ -47,9 +47,30 @@ export default function CustomBookingPage() {
     full_name: '',
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [customer, setCustomer] = useState<any>(null)
+  const [authLoading, setAuthLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [submitError, setSubmitError] = useState('')
+
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then(r => r.json())
+      .then(d => {
+        if (!d.authenticated) {
+          router.replace('/auth?next=/book/custom')
+          return
+        }
+        if (!d.customer) {
+          router.replace('/register?phone=' + encodeURIComponent(d.phone || ''))
+          return
+        }
+        setCustomer(d.customer)
+        setForm(f => ({ ...f, full_name: d.customer.full_name || '', phone: d.customer.phone || '' }))
+        setAuthLoading(false)
+      })
+      .catch(() => setAuthLoading(false))
+  }, [])
 
   function validate() {
     const e: Record<string, string> = {}
@@ -72,7 +93,7 @@ export default function CustomBookingPage() {
       const res = await fetch('/api/custom-request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, customer_id: customer?.id }),
       })
       const data = await res.json()
       if (data.success) {
@@ -86,6 +107,16 @@ export default function CustomBookingPage() {
       setSubmitting(false)
     }
   }
+
+  if (authLoading) return (
+    <>
+      <Nav />
+      <main style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ color: dark }}>جاري التحميل...</div>
+      </main>
+      <Footer />
+    </>
+  )
 
   if (submitted) return (
     <>

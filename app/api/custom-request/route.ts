@@ -13,25 +13,29 @@ const supabaseAdmin = createClient(
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { service_title, description, requested_date, phone, full_name } = body
+    const { service_title, description, requested_date, phone, full_name, customer_id } = body
 
     if (!service_title || !description || !phone || !full_name) {
       return NextResponse.json({ success: false, message: 'بيانات ناقصة' }, { status: 400 })
     }
 
-    // ابحث عن العميل بالجوال
-    const normalizedPhone = phone.trim().replace(/^0/, '966')
-    const { data: customer } = await supabaseAdmin
-      .from('customers')
-      .select('id')
-      .or(`phone.eq.${phone.trim()},phone.eq.${normalizedPhone}`)
-      .maybeSingle()
+    // جيب customer_id — إما من الجلسة أو بالبحث بالجوال
+    let resolvedCustomerId = customer_id || null
+    if (!resolvedCustomerId) {
+      const normalizedPhone = phone.trim().replace(/^0/, '966')
+      const { data: customerByPhone } = await supabaseAdmin
+        .from('customers')
+        .select('id')
+        .or(`phone.eq.${phone.trim()},phone.eq.${normalizedPhone}`)
+        .maybeSingle()
+      resolvedCustomerId = customerByPhone?.id || null
+    }
 
     // احفظ الطلب في bookings
     const { data: booking, error } = await supabaseAdmin
       .from('bookings')
       .insert({
-        customer_id: customer?.id || null,
+        customer_id: resolvedCustomerId,
         service_type: 'other',
         package_id: 'custom',
         status: 'pending',
