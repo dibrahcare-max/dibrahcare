@@ -1597,7 +1597,10 @@ export default function AdminPage() {
                       <div key={b.id} style={{ background: 'white', borderRadius: 20, border: '1px solid rgba(95,97,87,.1)', boxShadow: '0 2px 12px rgba(95,97,87,.05)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                         {/* Card Header */}
                         <div style={{ background: 'var(--dark)', padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div style={{ fontWeight: 900, color: '#F6F0D7', fontSize: '.9rem' }}>{PKG_LABELS[b.package] || b.package}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <div style={{ fontWeight: 900, color: '#F6F0D7', fontSize: '.9rem' }}>{PKG_LABELS[b.package] || b.package}</div>
+                            {b.service_type === 'other' && <span style={{ fontSize: '.65rem', fontWeight: 800, padding: '2px 8px', borderRadius: 20, background: '#e2ecd3', color: '#5f6157' }}>✨ حسب الطلب</span>}
+                          </div>
                           <span style={{ fontSize: '.7rem', fontWeight: 800, padding: '3px 10px', borderRadius: 20, background: st.color + '25', color: st.color, border: `1px solid ${st.color}40` }}>{st.label}</span>
                         </div>
                         {/* Card Body */}
