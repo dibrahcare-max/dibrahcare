@@ -210,8 +210,8 @@ export default function AdminPage() {
         })
         const d = await res.json()
         if (!active || !d?.success) return
-        const counts = { medical: d.medical || 0, feedback: d.feedback || 0, customers: d.customers || 0 }
-        const total = counts.medical + counts.feedback + counts.customers
+        const counts = { medical: d.medical || 0, feedback: d.feedback || 0, customers: d.customers || 0, custom: d.custom || 0 }
+        const total = counts.medical + counts.feedback + counts.customers + counts.custom
         if (total > prevTotalRef.current) playDing() // صوت عند وصول جديد
         prevTotalRef.current = total
         setNewCounts(counts)
