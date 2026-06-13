@@ -206,7 +206,7 @@ export async function POST(req: NextRequest) {
     // ═══ جلب بيانات العميل ═══
     const { data: customer } = await supabaseAdmin
       .from('customers')
-      .select('full_name, phone, vat_number')
+      .select('full_name, phone')
       .eq('id', booking.customer_id)
       .maybeSingle()
 
@@ -235,7 +235,7 @@ export async function POST(req: NextRequest) {
       bookingId,
       customerName: customer?.full_name || notes.full_name || '—',
       customerPhone: customer?.phone || notes.phone || '—',
-      customerVatNumber: (customer as any)?.vat_number || undefined,
+      customerVatNumber: undefined,
       serviceTitle: getServiceTitle(notes.service_key, booking.service_type),
       packageLabel: notes.package_label || booking.package_id || '—',
       startDate: notes.start_date || '—',
