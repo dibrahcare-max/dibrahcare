@@ -101,7 +101,7 @@ export async function GET() {
 
       return {
         id: b.id,
-        package: meta.package_label || '',
+        package: meta.package_label || (b.service_type === 'other' ? 'custom' : b.package_id || ''),
         start_date: meta.start_date || '',
         start_time: meta.start_time || '',
         end_time: meta.end_time || '',
