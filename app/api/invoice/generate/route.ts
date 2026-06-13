@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendWhatsApp, sendWhatsAppDocument, notifyAdmins } from '@/lib/twilio'
+import { getServiceTitle } from '@/lib/services'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -48,6 +49,10 @@ function buildInvoiceHTML(data: {
   subtotal: number
   vatAmount: number
   total: number
+  originalAmount: number
+  discountCode: string | null
+  discountPercent: number | null
+  discountAmount: number
 }): string {
   const logoUrl = 'https://dibrahcare.com/images/dibrah-logo.png'
 
@@ -155,6 +160,10 @@ function buildInvoiceHTML(data: {
 
   <div class="totals-wrap">
     <div class="totals-box">
+      ${data.discountCode ? `
+      <div class="total-row"><span class="total-lbl">السعر الأصلي</span><span class="total-val">${data.originalAmount.toFixed(2)} ر.س</span></div>
+      <div class="total-row" style="color:#e05c5c"><span class="total-lbl">خصم (${data.discountCode} — ${data.discountPercent}%)</span><span class="total-val">- ${data.discountAmount.toFixed(2)} ر.س</span></div>
+      ` : ''}
       <div class="total-row"><span class="total-lbl">المجموع قبل الضريبة</span><span class="total-val">${data.subtotal.toFixed(2)} ر.س</span></div>
       <div class="total-row"><span class="total-lbl">ضريبة القيمة المضافة (15%)</span><span class="total-val">${data.vatAmount.toFixed(2)} ر.س</span></div>
       <div class="total-row grand"><span class="total-lbl">الإجمالي المستحق</span><span class="total-val">${data.total.toFixed(2)} ر.س</span></div>
@@ -209,20 +218,35 @@ export async function POST(req: NextRequest) {
     const subtotal = parseFloat((total / 1.15).toFixed(2))
     const vatAmount = parseFloat((total - subtotal).toFixed(2))
 
+    // استخرج بيانات الخصم من notes
+    const discountCode    = notes.discount_code || null
+    const discountPercent = notes.discount_percent || null
+    const originalAmount  = notes.subtotal ? parseFloat(notes.subtotal) : total
+    const discountAmount  = notes.discount_amount ? parseFloat(notes.discount_amount) : 0
+
+    // المبلغ الخاضع للضريبة هو المبلغ بعد الخصم
+    const taxableAmount = originalAmount - discountAmount
+    const vatAmountFinal = parseFloat((taxableAmount * 0.15 / 1.15).toFixed(2))
+    const subtotalFinal  = parseFloat((taxableAmount - vatAmountFinal).toFixed(2))
+
     const invoiceData = {
       invoiceNumber: generateInvoiceNumber(bookingId),
       invoiceDate: new Date().toISOString().split('T')[0],
       bookingId,
       customerName: customer?.full_name || notes.full_name || '—',
       customerPhone: customer?.phone || notes.phone || '—',
-      customerVatNumber: customer?.vat_number || undefined,
-      serviceTitle: notes.service_key || booking.service_type || '—',
+      customerVatNumber: (customer as any)?.vat_number || undefined,
+      serviceTitle: getServiceTitle(notes.service_key, booking.service_type),
       packageLabel: notes.package_label || booking.package_id || '—',
       startDate: notes.start_date || '—',
       amount: total,
-      subtotal,
-      vatAmount,
+      subtotal: subtotalFinal,
+      vatAmount: vatAmountFinal,
       total,
+      originalAmount,
+      discountCode,
+      discountPercent,
+      discountAmount,
     }
 
     // ═══ توليد الـ PDF ═══
