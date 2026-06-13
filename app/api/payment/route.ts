@@ -184,6 +184,7 @@ export async function POST(req: NextRequest) {
         start_time: body.startTime || null,
         end_time: body.endTime || null,
         child_count: body.childCount || null,
+        booking_id: body.bookingId || null,
         // ─── معلومات الخصم (للسجل والمحاسبة) ───
         notes: appliedDiscount ? JSON.stringify({
           subtotal,

@@ -237,7 +237,21 @@ export async function POST(req: NextRequest) {
                 console.error('⚠️  [callback] save-booking failed:', JSON.stringify(saveJson))
               }
             } else if (attempt?.booking_id) {
-              console.log(`ℹ️  [callback] Booking already exists: ${attempt.booking_id} — skip`)
+              // الحجز موجود مسبقاً (مثل خدمة حسب الطلب) — نحدّث الحالة فقط
+              console.log(`ℹ️  [callback] Booking already exists: ${attempt.booking_id} — updating payment status`)
+              try {
+                await supabaseAdmin
+                  .from('bookings')
+                  .update({
+                    payment_status: 'paid',
+                    status: 'confirmed',
+                    updated_at: new Date().toISOString(),
+                  })
+                  .eq('id', attempt.booking_id)
+                console.log(`✅ [callback] Booking ${attempt.booking_id} updated to paid`)
+              } catch (e: any) {
+                console.error('⚠️  [callback] update booking failed:', e?.message)
+              }
             }
           } catch (saveErr: any) {
             console.error('⚠️  [callback] save-booking exception:', saveErr?.message)
