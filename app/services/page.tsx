@@ -150,7 +150,7 @@ export default function ServicesPage() {
               border: s.isNew ? '1.5px solid var(--dark)' : '1px solid rgba(95,97,87,.15)',
               display: 'grid',
               gridTemplateColumns: '1fr 1fr',
-              direction: (s as any).isCustom ? 'rtl' : (i % 2 === 0 ? 'rtl' : 'ltr'),
+              direction: i % 2 === 0 ? 'rtl' : 'ltr',
               position: 'relative',
               scrollMarginTop: 100,
             }} className="svc-card-detail">
