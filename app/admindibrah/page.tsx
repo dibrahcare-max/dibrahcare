@@ -249,6 +249,40 @@ export default function AdminPage() {
   }
 
   // ═══ تحميل العملاء المسجّلين ═══
+  const loadCustomRequests = async () => {
+    setCustomLoading(true)
+    try {
+      const res = await fetch('/api/admin/custom-requests')
+      const data = await res.json()
+      if (data.success) setCustomRequests(data.requests)
+    } catch {}
+    setCustomLoading(false)
+  }
+
+  const sendPaymentLink = async () => {
+    if (!pricingModal || !pricingAmount) return
+    const amount = parseFloat(pricingAmount)
+    if (!amount || amount <= 0) { setPricingError('أدخل مبلغاً صالحاً'); return }
+    setPricingSending(true)
+    setPricingError('')
+    try {
+      const res = await fetch('/api/admin/custom-requests/send-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId: pricingModal.id, amount }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setPricingModal(null)
+        setPricingAmount('')
+        loadCustomRequests()
+      } else {
+        setPricingError(data.message || 'فشل الإرسال')
+      }
+    } catch { setPricingError('حدث خطأ') }
+    setPricingSending(false)
+  }
+
   const loadCustomers = async () => {
     setCustomersLoading(true)
     try {
