@@ -20,15 +20,31 @@ export async function GET(req: NextRequest) {
 
     const users = usersData?.users || []
 
+    // جيب العملاء الذين لديهم حجز مدفوع — بالجوال
+    const { data: customers } = await supabase
+      .from('customers')
+      .select('id, phone')
+
     const { data: bookings } = await supabase
       .from('bookings')
-      .select('customer_id')
+      .select('customer_id, payment_status')
+      .eq('payment_status', 'paid')
 
-    const bookedIds = new Set((bookings || []).map((b: any) => b.customer_id).filter(Boolean))
+    const paidCustomerIds = new Set((bookings || []).map((b: any) => b.customer_id).filter(Boolean))
+
+    // ربط user.phone بـ customer.id
+    const paidPhones = new Set(
+      (customers || [])
+        .filter((c: any) => paidCustomerIds.has(c.id))
+        .map((c: any) => c.phone)
+        .filter(Boolean)
+    )
 
     const notBooked = users.filter((u: any) => {
       if (!u.email) return false
-      if (bookedIds.has(u.id)) return false
+      const phone = u.phone || u.user_metadata?.phone || ''
+      // لو عنده حجز مدفوع — لا ترسل له
+      if (phone && paidPhones.has(phone)) return false
       const diff = Date.now() - new Date(u.created_at).getTime()
       return diff > 24 * 60 * 60 * 1000
     })
