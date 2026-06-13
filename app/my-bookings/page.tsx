@@ -40,6 +40,7 @@ const PKG: Record<string, string> = {
   daily:     'الباقة اليومية',
   weekly:    'الباقة الأسبوعية',
   monthly:   'الباقة الشهرية',
+  custom:    'خدمة حسب الطلب',
 }
 
 const PKG_ICON: Record<string, string> = {
