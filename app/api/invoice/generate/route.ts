@@ -263,20 +263,24 @@ export async function POST(req: NextRequest) {
 
     // ═══ إرسال واتساب للعميل ═══
     const waSends: Promise<any>[] = []
+    const customerPhone = customer?.phone || invoiceData.customerPhone
 
-    if (customer?.phone) {
-      const firstName = (customer.full_name || '').trim().split(/\s+/)[0] || 'عميلنا الكريم'
+    if (customerPhone) {
+      const firstName = (customer?.full_name || invoiceData.customerName || '').trim().split(/\s+/)[0] || 'عميلنا الكريم'
+      console.log('📱 [invoice] إرسال للعميل:', customerPhone)
       waSends.push(
         sendWhatsApp(
-          customer.phone,
+          customerPhone,
           `مرحباً ${firstName} 🌿\n\nنشكرك على ثقتك بدبرة.\nيسعدنا إرسال فاتورتك الضريبية رقم *${invoiceNumber}* للخدمة المقدمة.\n\nلأي استفسار تواصل معنا عبر الموقع: dibrahcare.com`
         ).then(() => sendWhatsAppDocument(
-          customer.phone,
+          customerPhone,
           pdfBase64,
           fileName,
           `فاتورة ضريبية — ${invoiceNumber}`
         ))
       )
+    } else {
+      console.warn('⚠️ [invoice] لا يوجد رقم جوال للعميل')
     }
 
     // ═══ إرسال واتساب للأدمن ═══
