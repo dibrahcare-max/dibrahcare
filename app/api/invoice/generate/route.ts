@@ -266,9 +266,13 @@ export async function POST(req: NextRequest) {
       waSends.push(
         sendWhatsApp(
           customer.phone,
-          `مرحباً ${firstName} 🌿\n\nنشكرك على ثقتك بدبرة.\nيسعدنا إرسال فاتورتك الضريبية رقم *${invoiceNumber}* للخدمة المقدمة.\n\nلأي استفسار تواصل معنا عبر الموقع: dibrahcare.com`,
-          { document: pdfBase64, filename: fileName }
-        )
+          `مرحباً ${firstName} 🌿\n\nنشكرك على ثقتك بدبرة.\nيسعدنا إرسال فاتورتك الضريبية رقم *${invoiceNumber}* للخدمة المقدمة.\n\nلأي استفسار تواصل معنا عبر الموقع: dibrahcare.com`
+        ).then(() => sendWhatsAppDocument(
+          customer.phone,
+          pdfBase64,
+          fileName,
+          `فاتورة ضريبية — ${invoiceNumber}`
+        ))
       )
     }
 
