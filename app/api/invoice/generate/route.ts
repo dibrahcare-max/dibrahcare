@@ -240,7 +240,7 @@ export async function POST(req: NextRequest) {
       })
 
       const page = await browser.newPage()
-      await page.setContent(buildInvoiceHTML(invoiceData), { waitUntil: 'networkidle0' })
+      await page.setContent(buildInvoiceHTML(invoiceData), { waitUntil: 'load' })
       const pdf = await page.pdf({
         format: 'A4',
         printBackground: true,
