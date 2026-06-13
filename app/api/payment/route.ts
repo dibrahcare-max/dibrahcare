@@ -95,7 +95,17 @@ export async function POST(req: NextRequest) {
       monthly_4: 8000, monthly_8: 16000,
       ramadan_2: 200,
     }
-    const basePrice = PACKAGE_PRICES[body.package] || 0
+
+    // خدمة حسب الطلب — المبلغ يأتي من الأدمن مباشرة
+    if (body.package === 'custom') {
+      const customAmount = parseFloat(body.customAmount)
+      if (!customAmount || customAmount <= 0) {
+        return NextResponse.json({ success: false, message: 'مبلغ غير صالح' }, { status: 400 })
+      }
+      body.customAmount = customAmount
+    }
+
+    const basePrice = body.package === 'custom' ? body.customAmount : (PACKAGE_PRICES[body.package] || 0)
     if (basePrice <= 0) {
       return NextResponse.json({ success: false, message: 'باقة غير صالحة' }, { status: 400 })
     }
