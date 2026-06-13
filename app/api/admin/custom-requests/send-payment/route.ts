@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
       .from('bookings')
       .update({
         amount,
-        payment_status: 'awaiting_payment',
+        payment_status: 'unpaid',
         updated_at: new Date().toISOString(),
       })
       .eq('id', bookingId)
