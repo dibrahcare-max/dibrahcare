@@ -229,13 +229,16 @@ export async function POST(req: NextRequest) {
     let pdfBuffer: Buffer
 
     try {
-      const chromium = (await import('@sparticuz/chromium')).default
+      const chromium = (await import('@sparticuz/chromium-min')).default
       const puppeteer = (await import('puppeteer-core')).default
+
+      // Chromium binary URL للتحميل على Vercel
+      const CHROMIUM_URL = 'https://github.com/Sparticuz/chromium/releases/download/v133.0.0/chromium-v133.0.0-pack.tar'
 
       const browser = await puppeteer.launch({
         args: chromium.args,
         defaultViewport: chromium.defaultViewport,
-        executablePath: await chromium.executablePath(),
+        executablePath: await chromium.executablePath(CHROMIUM_URL),
         headless: true,
       })
 
