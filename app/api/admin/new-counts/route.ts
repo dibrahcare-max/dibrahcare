@@ -38,14 +38,15 @@ export async function POST(req: NextRequest) {
       return count || 0
     }
 
-    const [medical, feedback, customers] = await Promise.all([
+    const [medical, feedback, customers, custom] = await Promise.all([
       countNewer('bookings', s.medical || null, (q: any) => q.eq('service_type', 'medical')),
       countNewer('feedback', s.feedback || null),
       countNewer('customers', s.customers || null),
+      countNewer('bookings', s.custom || null, (q: any) => q.eq('service_type', 'other').eq('payment_status', 'awaiting_quote')),
     ])
 
     return NextResponse.json(
-      { success: true, medical, feedback, customers },
+      { success: true, medical, feedback, customers, custom },
       { headers: { 'Cache-Control': 'no-store' } }
     )
   } catch (e: any) {

@@ -73,6 +73,13 @@ const services = [
     desc: 'مرافقة متخصصة في المناسبات الدينية والأعياد والاحتفالات الإسلامية، مع الحرص على الروح الدينية الأصيلة وإحياء القيم الجميلة.',
     features: ['مرافقة في مناسبات رمضان والأعياد','الاهتمام بالأطفال في الاحتفالات الدينية','تنظيم الفعاليات الدينية الأسرية','إحياء التراث والقيم الإسلامية بفرح حقيقي'],
   },
+  {
+    id: 'custom', cat: 'حسب الطلب', img: 'svc-custom.png',
+    title: 'خدمة حسب الطلب',
+    desc: 'لا تجد ما تبحث عنه؟ أخبرنا بما تحتاجه وسنوفّر لك الحل المناسب. فريق دبرة يستمع لطلبك ويُعدّ عرضاً مخصصاً يناسب احتياجاتك تماماً.',
+    features: ['وصف احتياجك بحرية تامة','سيتواصل معك فريق دبرة لتحديد التفاصيل','تسعير مناسب يُرسل عبر واتساب','دفع آمن عبر رابط مخصص'],
+    isCustom: true,
+  },
 ]
 
 export default function ServicesPage() {
@@ -215,13 +222,13 @@ export default function ServicesPage() {
                 )}
 
                 {/* زر الحجز */}
-                <a href={`/auth?next=${encodeURIComponent('/book/' + s.id)}`} style={{
+                <a href={(s as any).isCustom ? '/book/custom' : `/auth?next=${encodeURIComponent('/book/' + s.id)}`} style={{
                   display: 'inline-block', alignSelf: 'flex-start',
-                  background: 'var(--dark)', color: '#F6F0D7',
+                  background: (s as any).isCustom ? '#e2ecd3' : 'var(--dark)', color: (s as any).isCustom ? 'var(--dark)' : '#F6F0D7',
                   fontSize: '.92rem', fontWeight: 800,
                   padding: '13px 32px', borderRadius: 10,
                   textDecoration: 'none', transition: 'opacity .2s',
-                }}>احجز هذه الخدمة ←</a>
+                }}>{(s as any).isCustom ? 'أرسل طلبك ←' : 'احجز هذه الخدمة ←'}</a>
 
               </div>
             </div>

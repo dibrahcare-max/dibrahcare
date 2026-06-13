@@ -133,7 +133,7 @@ export default function AdminPage() {
   }
 
   // ═══ تنبيهات الجديد (Badges) — الرعاية الطبية / التقييمات / العملاء ═══
-  const [newCounts, setNewCounts] = useState<{ medical: number; feedback: number; customers: number }>({ medical: 0, feedback: 0, customers: 0 })
+  const [newCounts, setNewCounts] = useState<{ medical: number; feedback: number; customers: number; custom: number }>({ medical: 0, feedback: 0, customers: 0, custom: 0 })
   const prevTotalRef = useRef(0)
   const audioCtxRef = useRef<any>(null)
 
@@ -204,6 +204,7 @@ export default function AdminPage() {
               medical: getSeen('medical'),
               feedback: getSeen('feedback'),
               customers: getSeen('customers'),
+              custom: getSeen('custom'),
             },
           }),
         })
@@ -234,7 +235,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (auth && tab === 'users') loadAdminUsers()
     if (auth && tab === 'customers') { loadCustomers(); markSeen('customers') }
-    if (auth && tab === 'custom') loadCustomRequests()
+    if (auth && tab === 'custom') { loadCustomRequests(); markSeen('custom') }
   }, [auth, tab])
 
   // ═══ Admin users functions ═══
@@ -1232,7 +1233,7 @@ export default function AdminPage() {
               { id: 'add' as const, label: 'حجز يدوي', icon: '➕' },
               { id: 'users' as const, label: 'الموظفون', icon: '👥' },
               { id: 'customers' as const, label: 'العملاء المسجلين', icon: '🧑‍💼' },
-              { id: 'custom' as const, label: 'حسب الطلب', icon: '✨' },
+              { id: 'custom' as const, label: 'حسب الطلب', icon: '✨', badge: true },
             ].map(item => {
               const active = tab === item.id
               return (
@@ -1253,6 +1254,9 @@ export default function AdminPage() {
                   {item.label}
                   {item.id === 'customers' && newCounts.customers > 0 && (
                     <span style={badgeStyle}>{newCounts.customers}</span>
+                  )}
+                  {item.id === 'custom' && newCounts.custom > 0 && (
+                    <span style={badgeStyle}>{newCounts.custom}</span>
                   )}
                 </button>
               )
