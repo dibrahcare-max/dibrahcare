@@ -166,7 +166,7 @@ export default function ServicesPage() {
 
               {/* Image */}
               <div style={{ position: 'relative', minHeight: 360, overflow: 'hidden' }}>
-                <Image src={`/images/${s.img}`} alt={s.title} fill style={{ objectFit: 'cover' }} loading="lazy" />
+                <Image src={`/images/${s.img}`} alt={s.title} fill style={{ objectFit: 'cover', objectPosition: (s as any).isCustom ? 'center top' : 'center' }} loading="lazy" />
                 <div style={{
                   position: 'absolute', inset: 0,
                   background: 'linear-gradient(to top, rgba(95,97,87,.4) 0%, transparent 50%)',
