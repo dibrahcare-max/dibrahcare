@@ -64,7 +64,13 @@ export default function AdminPage() {
   const [loading, setLoading]     = useState(false)
   const [filter, setFilter]       = useState('all')
   const [search, setSearch]       = useState('')
-  const [tab, setTab]             = useState<'bookings'|'add'|'edit'|'stats'|'users'|'customers'>('bookings')
+  const [tab, setTab]             = useState<'bookings'|'add'|'edit'|'stats'|'users'|'customers'|'custom'>('bookings')
+  const [customRequests, setCustomRequests] = useState<any[]>([])
+  const [customLoading, setCustomLoading]   = useState(false)
+  const [pricingModal, setPricingModal]     = useState<{id:string; name:string} | null>(null)
+  const [pricingAmount, setPricingAmount]   = useState('')
+  const [pricingSending, setPricingSending] = useState(false)
+  const [pricingError, setPricingError]     = useState('')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [period, setPeriod]         = useState('all')
   const [editData, setEditData]     = useState<Booking | null>(null)
@@ -228,6 +234,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (auth && tab === 'users') loadAdminUsers()
     if (auth && tab === 'customers') { loadCustomers(); markSeen('customers') }
+    if (auth && tab === 'custom') loadCustomRequests()
   }, [auth, tab])
 
   // ═══ Admin users functions ═══
@@ -1191,6 +1198,7 @@ export default function AdminPage() {
               { id: 'add' as const, label: 'حجز يدوي', icon: '➕' },
               { id: 'users' as const, label: 'الموظفون', icon: '👥' },
               { id: 'customers' as const, label: 'العملاء المسجلين', icon: '🧑‍💼' },
+              { id: 'custom' as const, label: 'حسب الطلب', icon: '✨' },
             ].map(item => {
               const active = tab === item.id
               return (
@@ -1316,6 +1324,7 @@ export default function AdminPage() {
               {tab === 'users' && '👥 إدارة الموظفين'}
               {tab === 'customers' && '🧑‍💼 العملاء المسجلين'}
               {tab === 'edit' && '✏️ تعديل حجز'}
+              {tab === 'custom' && '✨ الطلبات المخصصة'}
             </h1>
             <p style={{ color: 'var(--muted)', fontSize: '.88rem', marginTop: 4 }}>
               📅 {new Date().toLocaleDateString('ar-SA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
@@ -2333,9 +2342,86 @@ export default function AdminPage() {
           </div>
         </div>
       )}
+
+      {/* ═══ تبويب الطلبات المخصصة ═══ */}
+      {tab === 'custom' && (
+        <div style={{ padding: '24px 20px', maxWidth: 800, margin: '0 auto' }}>
+          {customLoading ? (
+            <div style={{ textAlign: 'center', color: '#888', padding: 40 }}>جاري التحميل...</div>
+          ) : customRequests.length === 0 ? (
+            <div style={{ textAlign: 'center', color: '#888', padding: 40 }}>لا توجد طلبات مخصصة حالياً</div>
+          ) : (
+            customRequests.map((r: any) => {
+              const notes = typeof r.notes === 'string' ? JSON.parse(r.notes || '{}') : r.notes || {}
+              const isPriced = r.amount > 0
+              const isPaid = r.payment_status === 'paid'
+              return (
+                <div key={r.id} style={{ background: '#fff', borderRadius: 12, padding: '18px 20px', marginBottom: 14, boxShadow: '0 1px 6px rgba(95,97,87,.08)', border: isPaid ? '1.5px solid #5f6157' : '1px solid #e8ede3' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                    <div>
+                      <div style={{ fontWeight: 800, color: '#5f6157', fontSize: '1rem', marginBottom: 4 }}>{notes.service_title || 'خدمة مخصصة'}</div>
+                      <div style={{ fontSize: '.83rem', color: '#888' }}>DBR-{r.id.split('-')[0].toUpperCase()}</div>
+                    </div>
+                    <div style={{ textAlign: 'left' }}>
+                      {isPaid && <span style={{ background: '#e2ecd3', color: '#5f6157', fontWeight: 700, fontSize: '.75rem', padding: '3px 10px', borderRadius: 20 }}>مدفوع ✅</span>}
+                      {!isPaid && isPriced && <span style={{ background: '#fff3cd', color: '#856404', fontWeight: 700, fontSize: '.75rem', padding: '3px 10px', borderRadius: 20 }}>بانتظار الدفع</span>}
+                      {!isPaid && !isPriced && <span style={{ background: '#f8d7da', color: '#842029', fontWeight: 700, fontSize: '.75rem', padding: '3px 10px', borderRadius: 20 }}>بانتظار التسعير</span>}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '.88rem', color: '#444', lineHeight: 1.7, marginBottom: 12 }}>
+                    <div><span style={{ color: '#888' }}>الاسم:</span> {notes.full_name || r.customers?.full_name || '—'}</div>
+                    <div><span style={{ color: '#888' }}>الجوال:</span> {notes.phone || r.customers?.phone || '—'}</div>
+                    {notes.description && <div><span style={{ color: '#888' }}>الوصف:</span> {notes.description}</div>}
+                    {notes.requested_date && <div><span style={{ color: '#888' }}>التاريخ:</span> {notes.requested_date}</div>}
+                    {isPriced && <div><span style={{ color: '#888' }}>المبلغ:</span> <strong>{parseFloat(r.amount).toFixed(2)} ر.س</strong></div>}
+                  </div>
+                  {!isPaid && (
+                    <button
+                      onClick={() => { setPricingModal({ id: r.id, name: notes.full_name || r.customers?.full_name || '' }); setPricingAmount(isPriced ? String(r.amount) : ''); setPricingError('') }}
+                      style={{ background: '#5f6157', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 18px', fontSize: '.85rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+                    >
+                      {isPriced ? '✏️ تعديل السعر وإعادة الإرسال' : '💰 تسعير وإرسال رابط الدفع'}
+                    </button>
+                  )}
+                </div>
+              )
+            })
+          )}
+
+          {/* Modal التسعير */}
+          {pricingModal && (
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+              <div style={{ background: '#fff', borderRadius: 16, padding: '28px 24px', maxWidth: 400, width: '100%', direction: 'rtl' }}>
+                <h3 style={{ fontWeight: 800, color: '#5f6157', marginBottom: 8 }}>تسعير الطلب</h3>
+                <p style={{ fontSize: '.88rem', color: '#666', marginBottom: 20 }}>سيُرسل رابط الدفع تلقائياً للعميل عبر واتساب</p>
+                <label style={{ display: 'block', fontSize: '.82rem', fontWeight: 700, color: '#5f6157', marginBottom: 6 }}>المبلغ (ر.س) *</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={pricingAmount}
+                  onChange={e => setPricingAmount(e.target.value)}
+                  placeholder="مثال: 350"
+                  style={{ width: '100%', padding: '12px 14px', border: '1.5px solid rgba(95,97,87,.25)', borderRadius: 10, fontSize: '1rem', fontFamily: 'inherit', direction: 'ltr', marginBottom: 8 }}
+                />
+                {pricingError && <div style={{ color: '#c0392b', fontSize: '.82rem', marginBottom: 8, fontWeight: 700 }}>{pricingError}</div>}
+                <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+                  <button onClick={sendPaymentLink} disabled={pricingSending} style={{ flex: 1, background: pricingSending ? '#aaa' : '#5f6157', color: '#fff', border: 'none', borderRadius: 10, padding: '12px', fontWeight: 700, cursor: pricingSending ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontSize: '.9rem' }}>
+                    {pricingSending ? 'جاري الإرسال...' : '📤 إرسال رابط الدفع'}
+                  </button>
+                  <button onClick={() => { setPricingModal(null); setPricingAmount('') }} style={{ flex: 1, background: '#f0f0f0', color: '#333', border: 'none', borderRadius: 10, padding: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: '.9rem' }}>
+                    إلغاء
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </>
   )
 }
+
+// ═══ مكوّن عرض التفاصيل ═══
 
 // ═══ مكوّن عرض التفاصيل ═══
 function DetailsContent({ data }: { data: any }) {
