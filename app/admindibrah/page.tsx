@@ -1616,9 +1616,10 @@ export default function AdminPage() {
                                   meta = JSON.parse(b.notes)
                                 }
                               } catch {}
-                              const startDate = meta.start_date || b.start_date || '—'
+                              const startDate = meta.start_date || meta.requested_date || b.start_date || '—'
                               const startTime = meta.start_time || b.start_time || '—'
-                              const pkgLabel = meta.package_label || meta.package_id || b.package || '—'
+                              const isCustom = b.service_type === 'other'
+                              const pkgLabel = meta.package_label || meta.package_id || b.package || (b.service_type === 'other' ? (meta.service_title || 'خدمة حسب الطلب') : '—')
                               const amount = (b as any).amount ?? b.price
                               const trackId = meta.trackId || meta.track_id || b.track_id || ''
                               const paymentId = meta.paymentId || meta.payment_id || (b as any).payment_id || ''
@@ -1630,8 +1631,14 @@ export default function AdminPage() {
                               const hasDiscount    = !!(discountCode && discountAmount > 0)
                               return (
                                 <>
-                                  <div><span style={{ color: 'var(--muted)' }}>📅 </span><span style={{ fontWeight: 700 }}>{startDate}</span></div>
-                                  <div><span style={{ color: 'var(--muted)' }}>🕐 </span><span style={{ fontWeight: 700 }}>{startTime}</span></div>
+                                  {isCustom && meta.description && (
+                                    <div style={{ gridColumn: 'span 2', fontSize: '.78rem', color: '#555', background: '#f8f9f6', borderRadius: 6, padding: '6px 10px', marginBottom: 4 }}>
+                                      📝 {meta.description}
+                                    </div>
+                                  )}
+                                  {!isCustom && <div><span style={{ color: 'var(--muted)' }}>📅 </span><span style={{ fontWeight: 700 }}>{startDate}</span></div>}
+                                  {isCustom && meta.requested_date && <div><span style={{ color: 'var(--muted)' }}>📅 </span><span style={{ fontWeight: 700 }}>{meta.requested_date}</span></div>}
+                                  {!isCustom && <div><span style={{ color: 'var(--muted)' }}>🕐 </span><span style={{ fontWeight: 700 }}>{startTime}</span></div>}
                                   {hasDiscount ? (
                                     <div style={{ gridColumn: 'span 2', display: 'grid', gap: 2, padding: '6px 8px', background: '#fef3c7', borderRadius: 6, marginTop: 2 }}>
                                       <div style={{ fontSize: '.72rem', color: '#92400e', fontWeight: 700 }}>
