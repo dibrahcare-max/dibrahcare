@@ -77,6 +77,7 @@ export async function POST(req: NextRequest) {
         short_address: form.short_address,
         email: form.email.toLowerCase().trim(),
         referral_source: form.referral_source || null,
+        vat_number: form.vat_number?.trim() || null,
       })
       .select('id')
       .single()

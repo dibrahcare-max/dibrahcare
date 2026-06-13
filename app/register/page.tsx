@@ -11,6 +11,7 @@ type FormState = {
   full_name: string
   national_id: string
   phone: string
+  vat_number: string
   nationality: string
   city: string
   district: string
@@ -24,7 +25,7 @@ type FormState = {
 const INITIAL: FormState = {
   full_name: '', national_id: '', phone: '',
   nationality: '', city: 'الرياض', district: '', street: '',
-  emergency_phone: '', short_address: '', email: '',
+  emergency_phone: '', short_address: '', email: '', vat_number: '',
   referral_source: '',
 }
 
@@ -523,6 +524,24 @@ function RegisterInner() {
                 )}
               </div>
             </div>
+          </div>
+
+          {/* الرقم الضريبي - اختياري */}
+          <div style={cardStyle}>
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--dark)', marginBottom: 16 }}>
+              الرقم الضريبي <span style={{ fontSize: '.8rem', color: 'var(--muted)', fontWeight: 400 }}>(اختياري — للعملاء المسجلين في ضريبة القيمة المضافة)</span>
+            </h3>
+            <Field
+              label="الرقم الضريبي"
+              value={form.vat_number}
+              error={''}
+              touched={false}
+              optional
+              inputMode="text"
+              placeholder="3XXXXXXXXXXX0003"
+              onChange={v => setField('vat_number', v)}
+              onBlur={() => {}}
+            />
           </div>
 
           {/* الموافقة + الإرسال */}
