@@ -40,7 +40,7 @@ type Booking = {
   payment_id?: string
   notes: string
   created_at: string
-  customers?: { full_name: string; phone: string; national_id: string; email: string; nationality: string; city?: string; district: string; street: string; emergency_phone: string; short_address: string }
+  customers?: { full_name: string; phone: string; national_id: string; email: string; nationality: string; city?: string; district: string; street: string; emergency_phone: string; short_address: string; vat_number?: string }
 }
 
 const emptyForm = {
@@ -2443,6 +2443,7 @@ function DetailsContent({ data }: { data: any }) {
         <Row label="الرمز البريدي" value={customer?.short_address} />
         <Row label="جوال الطوارئ" value={customer?.emergency_phone} />
         {registration?.subscriber_job && <Row label="الوظيفة" value={registration.subscriber_job} />}
+        {(customer as any)?.vat_number && <Row label="الرقم الضريبي" value={(customer as any).vat_number} />}
       </Section>
 
       {/* بيانات المستفيد — تُقرأ من service_details */}
