@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { createClient } from '@supabase/supabase-js'
+import { sendWhatsApp, notifyAdmins } from '@/lib/twilio'
 
 export const runtime = 'nodejs'
 
@@ -249,6 +250,54 @@ export async function POST(req: NextRequest) {
                   })
                   .eq('id', attempt.booking_id)
                 console.log(`✅ [callback] Booking ${attempt.booking_id} updated to paid`)
+
+                // جيب بيانات العميل وأرسل واتساب
+                try {
+                  const { data: bk } = await supabaseAdmin
+                    .from('bookings')
+                    .select('notes, customers(full_name, phone)')
+                    .eq('id', attempt.booking_id)
+                    .maybeSingle()
+
+                  const notes = typeof bk?.notes === 'string' ? JSON.parse(bk.notes || '{}') : bk?.notes || {}
+                  const customerPhone = (bk?.customers as any)?.phone || notes.phone
+                  const customerName = (bk?.customers as any)?.full_name || notes.full_name || 'عميلنا الكريم'
+                  const firstName = customerName.trim().split(/\s+/)[0]
+                  const shortId = `DBR-${attempt.booking_id.split('-')[0].toUpperCase()}`
+                  const serviceTitle = notes.service_title || 'خدمة حسب الطلب'
+
+                  // رسالة للعميل
+                  if (customerPhone) {
+                    await sendWhatsApp(
+                      customerPhone,
+                      `مرحباً ${firstName} 💚
+
+تم استلام دفعتك بنجاح ✅
+
+طلبك *"${serviceTitle}"* أصبح مؤكداً.
+رقم الطلب: *${shortId}*
+
+سيتواصل معك فريق دبرة لتأكيد التفاصيل النهائية.
+
+شكراً لثقتك بنا 🌿`
+                    ).catch(e => console.error('⚠️  [callback] customer notify failed:', e?.message))
+                  }
+
+                  // رسالة للأدمن
+                  await notifyAdmins(
+                    `💰 دفع مكتمل — خدمة حسب الطلب
+
+العميل: ${customerName}
+الجوال: ${customerPhone || '—'}
+الخدمة: ${serviceTitle}
+المبلغ: ${attempt.amount || '—'} ر.س
+رقم الطلب: ${shortId}`
+                  ).catch(e => console.error('⚠️  [callback] admin notify failed:', e?.message))
+
+                } catch (notifyErr: any) {
+                  console.error('⚠️  [callback] notify exception:', notifyErr?.message)
+                }
+
               } catch (e: any) {
                 console.error('⚠️  [callback] update booking failed:', e?.message)
               }
