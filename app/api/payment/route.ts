@@ -166,6 +166,19 @@ export async function POST(req: NextRequest) {
 
     const trackId = 'TRK' + Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 900 + 100)
 
+    // لو bookingId موجود (خدمة حسب الطلب) → جيب customer_id من bookings
+    let resolvedCustomerId = body.customerId || null
+    if (body.bookingId && !resolvedCustomerId) {
+      try {
+        const { data: bk } = await supabaseAdmin
+          .from('bookings')
+          .select('customer_id')
+          .eq('id', body.bookingId)
+          .maybeSingle()
+        if (bk?.customer_id) resolvedCustomerId = bk.customer_id
+      } catch {}
+    }
+
     // ═══ سجّل المحاولة في DB قبل أي شي ═══
     // هذا يضمن إن أي دفعة لها سجل مهما حصل بعدها
     try {
@@ -179,7 +192,7 @@ export async function POST(req: NextRequest) {
         service_category: body.serviceCategory || null,
         phone: body.phone || null,
         full_name: body.fullName || null,
-        customer_id: body.customerId || null,
+        customer_id: resolvedCustomerId,
         start_date: body.startDate || null,
         start_time: body.startTime || null,
         end_time: body.endTime || null,
