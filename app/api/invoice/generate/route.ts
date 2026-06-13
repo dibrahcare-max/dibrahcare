@@ -280,7 +280,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ═══ إرسال واتساب للأدمن ═══
-    const adminPhones = (process.env.ADMIN_WHATSAPP_NUMBERS || '').split(',').filter(Boolean)
+    const adminPhones = (process.env.ADMIN_PHONES || '').split(',').map(p => p.trim()).filter(Boolean)
     for (const adminPhone of adminPhones) {
       waSends.push(
         sendWhatsApp(adminPhone, `🧾 فاتورة ضريبية صدرت\n\nالعميل: ${invoiceData.customerName}\nالمبلغ: ${total.toFixed(2)} ر.س\nرقم الفاتورة: ${invoiceNumber}`)
