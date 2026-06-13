@@ -144,6 +144,26 @@ export async function POST(
       }
     }
 
+    // ═══ ٧. إرسال الفاتورة عند الانتقال لـ "منفذ" ═══
+    if (body.status === 'executed' && oldStatus !== 'executed') {
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://dibrahcare.com'
+        const invoiceRes = await fetch(`${baseUrl}/api/invoice/generate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bookingId: id }),
+        })
+        const invoiceJson = await invoiceRes.json()
+        if (invoiceJson?.success) {
+          console.log(`✅ [invoice] أُرسلت الفاتورة ${invoiceJson.invoiceNumber} للحجز ${id}`)
+        } else {
+          console.error('⚠️ [invoice] فشل إرسال الفاتورة:', invoiceJson?.message)
+        }
+      } catch (e: any) {
+        console.error('⚠️ [invoice] استثناء:', e?.message)
+      }
+    }
+
     return NextResponse.json({ success: true, booking: data })
   } catch (e: any) {
     console.error('[admin/bookings/update] خطأ:', e?.message)

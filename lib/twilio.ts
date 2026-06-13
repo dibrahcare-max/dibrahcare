@@ -111,6 +111,47 @@ export async function sendWhatsAppMedia(
   }
 }
 
+// ═══ إرسال مستند (PDF) عبر UltraMSG ═══
+export async function sendWhatsAppDocument(
+  to: string,
+  documentBase64: string,
+  filename: string,
+  caption: string = ''
+): Promise<{ success: boolean; sid?: string; error?: string }> {
+  const instance = process.env.ULTRAMSG_INSTANCE_ID
+  const token    = process.env.ULTRAMSG_TOKEN
+  if (!instance || !token) {
+    return { success: false, error: 'بيانات UltraMSG غير مضبوطة' }
+  }
+
+  await awaitGate()
+  const phone = normalizePhone(to)
+
+  // UltraMSG يقبل base64 مباشرة كـ document
+  const params = new URLSearchParams({
+    token,
+    to: phone,
+    document: `data:application/pdf;base64,${documentBase64}`,
+    filename,
+    caption,
+  })
+
+  try {
+    const res = await fetch(`${ULTRAMSG_API}/${instance}/messages/document`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString(),
+    })
+    const data = await res.json()
+    if (!res.ok || data.error) {
+      return { success: false, error: data.error || data.message || `HTTP ${res.status}` }
+    }
+    return { success: true, sid: String(data.id || '') }
+  } catch (e: any) {
+    return { success: false, error: e.message || 'فشل الاتصال' }
+  }
+}
+
 // قوالب الرسائل الجاهزة
 export const TEMPLATES = {
   welcomeRegistration: (name: string) =>
