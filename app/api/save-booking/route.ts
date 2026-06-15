@@ -54,6 +54,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: 'بيانات العميل ناقصة' }, { status: 400 })
     }
 
+    // ═══ حماية من التكرار — تحقق من trackId قبل الحفظ ═══
+    if (trackId) {
+      const { data: existingAttempt } = await supabase
+        .from('payment_attempts')
+        .select('booking_id')
+        .eq('track_id', trackId)
+        .maybeSingle()
+
+      if (existingAttempt?.booking_id) {
+        console.log(`ℹ️  [save-booking] Duplicate detected for trackId ${trackId} — skipping`)
+        return NextResponse.json({ success: true, bookingId: existingAttempt.booking_id, duplicate: true })
+      }
+    }
+
     // قيمة service_type لازم تكون من القيم المسموحة في DB
     const serviceType = service_category || SERVICE_CATEGORY_MAP[service_key] || 'other'
 
