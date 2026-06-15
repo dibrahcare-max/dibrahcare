@@ -54,17 +54,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: 'بيانات العميل ناقصة' }, { status: 400 })
     }
 
-    // ═══ حماية من التكرار — تحقق من trackId قبل الحفظ ═══
+    // ═══ حماية من التكرار — تحقق من trackId في bookings.notes ═══
     if (trackId) {
-      const { data: existingAttempt } = await supabase
-        .from('payment_attempts')
-        .select('booking_id')
-        .eq('track_id', trackId)
+      const { data: existingBooking } = await supabase
+        .from('bookings')
+        .select('id')
+        .filter('notes', 'cs', JSON.stringify({ trackId }))
         .maybeSingle()
 
-      if (existingAttempt?.booking_id) {
+      if (existingBooking?.id) {
         console.log(`ℹ️  [save-booking] Duplicate detected for trackId ${trackId} — skipping`)
-        return NextResponse.json({ success: true, bookingId: existingAttempt.booking_id, duplicate: true })
+        return NextResponse.json({ success: true, bookingId: existingBooking.id, duplicate: true })
       }
     }
 
