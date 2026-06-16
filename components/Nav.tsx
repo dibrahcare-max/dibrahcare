@@ -147,6 +147,10 @@ export default function Nav() {
                     <span>📅</span> حجوزاتي
                   </a>
                   <div style={menuDivider} />
+                  <a href="/profile" style={menuItem}>
+                    <span>👤</span> بياناتي
+                  </a>
+                  <div style={menuDivider} />
                   <button onClick={logout} style={{ ...menuItem, border: 'none', width: '100%', textAlign: 'right', cursor: 'pointer', fontFamily: 'inherit', color: '#c0392b' }}>
                     <span>🚪</span> خروج
                   </button>
@@ -238,6 +242,9 @@ export default function Nav() {
               </a>
               <a href="/my-bookings" onClick={() => setMobOpen(false)} style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--dark)', fontFamily: 'PNU, Tajawal, sans-serif' }}>
                 📅 حجوزاتي
+              </a>
+              <a href="/profile" onClick={() => setMobOpen(false)} style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--dark)', fontFamily: 'PNU, Tajawal, sans-serif' }}>
+                👤 بياناتي
               </a>
               <button onClick={() => { setMobOpen(false); logout() }} style={{ background: 'none', border: 'none', fontSize: '1.1rem', fontWeight: 700, color: '#c0392b', fontFamily: 'inherit', cursor: 'pointer' }}>
                 🚪 خروج
