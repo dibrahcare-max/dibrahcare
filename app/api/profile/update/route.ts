@@ -1,7 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createClient } from '@supabase/supabase-js'
-import { verifySessionToken } from '@/lib/auth'
+import crypto from 'crypto'
+
+function verifyToken(token: string): { phone: string; customerId?: string } | null {
+  try {
+    const secret = process.env.SESSION_SECRET || 'dibrah-secret-key'
+    const [payloadB64, sig] = token.split('.')
+    if (!payloadB64 || !sig) return null
+    const expected = crypto.createHmac('sha256', secret).update(payloadB64).digest('hex')
+    if (expected !== sig) return null
+    const data = JSON.parse(Buffer.from(payloadB64, 'base64').toString())
+    if (data.exp && Date.now() > data.exp) return null
+    return { phone: data.phone, customerId: data.customerId }
+  } catch { return null }
+}
 
 export const runtime = 'nodejs'
 
@@ -16,8 +29,17 @@ export async function POST(req: NextRequest) {
     const token = cookieStore.get('dibrah_session')?.value
     if (!token) return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 401 })
 
-    const session = verifySessionToken(token)
-    if (!session?.customerId) return NextResponse.json({ success: false, message: 'جلسة غير صالحة' }, { status: 401 })
+    const session = verifyToken(token)
+    if (!session?.customerId && !session?.phone) return NextResponse.json({ success: false, message: 'جلسة غير صالحة' }, { status: 401 })
+
+    // جيب customer id من الجلسة أو بالجوال
+    let customerId = session.customerId
+    if (!customerId && session.phone) {
+      const localPhone = session.phone.replace(/^966/, '0')
+      const { data: c } = await supabase.from('customers').select('id').eq('phone', localPhone).maybeSingle()
+      customerId = c?.id
+    }
+    if (!customerId) return NextResponse.json({ success: false, message: 'العميل غير موجود' }, { status: 404 })
 
     const body = await req.json()
     const {
@@ -43,7 +65,7 @@ export async function POST(req: NextRequest) {
         vat_number: vat_number || null,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', session.customerId)
+      .eq('id', customerId)
 
     if (error) {
       console.error('[profile/update]', error)
