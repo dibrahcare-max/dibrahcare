@@ -54,12 +54,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: 'بيانات العميل ناقصة' }, { status: 400 })
     }
 
-    // ═══ حماية من التكرار — تحقق من trackId في bookings.notes ═══
+    // ═══ حماية سريعة من التكرار (تقليل عدد المحاولات الفاشلة) ═══
+    // الحماية الفعلية الضامنة هي UNIQUE constraint على bookings.track_id في قاعدة البيانات
     if (trackId) {
       const { data: existingBooking } = await supabase
         .from('bookings')
         .select('id')
-        .filter('notes', 'cs', JSON.stringify({ trackId }))
+        .eq('track_id', trackId)
         .maybeSingle()
 
       if (existingBooking?.id) {
@@ -77,6 +78,7 @@ export async function POST(req: NextRequest) {
         customer_id,
         service_type: serviceType,
         package_id: package_id || null,
+        track_id: trackId || null,
         service_details: service_details || null,
         status: 'pending', // قيد المراجعة — تؤكده الموظفة لاحقاً
         payment_status: payment_status || 'paid',
@@ -106,6 +108,16 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (error) {
+      // لو الخطأ بسبب تكرار track_id (race condition تم اكتشافه على مستوى DB) — تعامل معه كنجاح، لا كخطأ
+      if (error.code === '23505' && trackId) {
+        console.log(`ℹ️  [save-booking] DB-level duplicate caught for trackId ${trackId}`)
+        const { data: existing } = await supabase
+          .from('bookings')
+          .select('id')
+          .eq('track_id', trackId)
+          .maybeSingle()
+        return NextResponse.json({ success: true, bookingId: existing?.id, duplicate: true })
+      }
       console.error('save-booking error:', error)
       return NextResponse.json({ success: false, message: error.message }, { status: 500 })
     }
