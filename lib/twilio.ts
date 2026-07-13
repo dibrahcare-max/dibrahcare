@@ -335,16 +335,20 @@ export async function notifyAdmins(body: string): Promise<void> {
     return
   }
 
-  // sendWhatsApp فيه gate يضمن ٢ ثانية بين كل رسالة، فالحلقة آمنة
-  for (const phone of phones) {
-    sendWhatsApp(phone, body)
-      .then(r => {
-        if (!r.success) {
-          console.warn(`⚠️  [notifyAdmins] فشل إرسال إلى ${phone}:`, r.error)
-        } else {
-          console.log(`✅ [notifyAdmins] أُرسل إلى ${phone}:`, r.sid)
-        }
-      })
-      .catch(err => console.error(`[notifyAdmins] استثناء عند ${phone}:`, err?.message))
-  }
+  // ⚠️ لازم await — على Vercel الـ function تُقتل بمجرد انتهاء الطلب،
+  // فأي إرسال بدون انتظار يضيع قبل ما يكتمل.
+  const results = await Promise.allSettled(
+    phones.map(phone => sendWhatsApp(phone, body))
+  )
+
+  results.forEach((res, i) => {
+    const phone = phones[i]
+    if (res.status === 'rejected') {
+      console.error(`[notifyAdmins] استثناء عند ${phone}:`, res.reason?.message)
+    } else if (!res.value.success) {
+      console.warn(`⚠️  [notifyAdmins] فشل إرسال إلى ${phone}:`, res.value.error)
+    } else {
+      console.log(`✅ [notifyAdmins] أُرسل إلى ${phone}:`, res.value.sid)
+    }
+  })
 }
