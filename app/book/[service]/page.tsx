@@ -844,6 +844,8 @@ function BookingPage() {
           endTime: endTime,
           childCount: serviceInfo.category === 'child' ? childCount : null,
           beneficiaryCount: serviceInfo.category === 'multi' ? beneficiaryCount : null,
+          // ─── بيانات المستفيدين (تُحفظ في payment_attempts حتى لو أغلق العميل المتصفح) ───
+          serviceDetails: serviceDetails,
           // ─── كود الخصم (إذا طُبّق) ───
           discountCodeId:      appliedCode?.id      || null,
           discountCodeText:    appliedCode?.code    || null,

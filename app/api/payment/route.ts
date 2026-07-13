@@ -198,6 +198,8 @@ export async function POST(req: NextRequest) {
         end_time: body.endTime || null,
         child_count: body.childCount || null,
         booking_id: body.bookingId || null,
+        // ─── بيانات المستفيدين (أطفال/كبار سن/متعدد) ───
+        service_details: body.serviceDetails || null,
         // ─── معلومات الخصم (للسجل والمحاسبة) ───
         notes: appliedDiscount ? JSON.stringify({
           subtotal,

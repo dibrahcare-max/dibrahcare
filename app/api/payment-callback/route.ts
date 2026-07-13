@@ -226,6 +226,7 @@ export async function POST(req: NextRequest) {
                   start_time:       attempt.start_time,
                   end_time:         attempt.end_time,
                   child_count:      attempt.child_count,
+                  service_details:  attempt.service_details,
                   amount:           attempt.amount,
                   trackId:          attempt.track_id,
                   paymentId:        paymentId || attempt.payment_id,
