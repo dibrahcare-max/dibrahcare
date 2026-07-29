@@ -48,10 +48,40 @@ export async function POST(req: NextRequest) {
       is_gift,
       gift_recipient_phone,
       gift_message,
+      // ─── الحجز اليدوي من لوحة التحكم ───
+      manual,
+      subscriber_name,
+      subscriber_phone,
+      subscriber_id,
+      subscriber_nationality,
+      subscriber_address,
+      beneficiary_name,
+      beneficiary_age,
+      beneficiary_relation,
+      emergency_phone,
+      status: manualStatus,
     } = body
 
-    if (!customer_id) {
-      return NextResponse.json({ success: false, message: 'بيانات العميل ناقصة' }, { status: 400 })
+    // الحجز يُعتبر يدوياً لو صُرّح بذلك، أو لو ما فيه customer_id لكن فيه جوال مشترك
+    const isManual = !!manual || (!customer_id && !!subscriber_phone)
+
+    // ═══ تحديد العميل ═══
+    // الحجز الأونلاين يرسل customer_id جاهز. الحجز اليدوي (manual) لا يرسله —
+    // نبحث عن العميل بالجوال إن كان مسجّلاً، وإلا نحفظ الحجز ببياناته في notes.
+    let resolvedCustomerId: string | null = customer_id || null
+    if (!resolvedCustomerId) {
+      if (isManual && subscriber_phone) {
+        const rawPhone = String(subscriber_phone).trim()
+        const intlPhone = rawPhone.replace(/^0/, '966')
+        const { data: existingCustomer } = await supabase
+          .from('customers')
+          .select('id')
+          .or(`phone.eq.${rawPhone},phone.eq.${intlPhone}`)
+          .maybeSingle()
+        resolvedCustomerId = existingCustomer?.id || null
+      } else {
+        return NextResponse.json({ success: false, message: 'بيانات العميل ناقصة' }, { status: 400 })
+      }
     }
 
     // ═══ حماية سريعة من التكرار (تقليل عدد المحاولات الفاشلة) ═══
@@ -75,12 +105,12 @@ export async function POST(req: NextRequest) {
     const { data: booking, error } = await supabase
       .from('bookings')
       .insert({
-        customer_id,
+        customer_id: resolvedCustomerId,
         service_type: serviceType,
         package_id: package_id || null,
         track_id: trackId || null,
         service_details: service_details || null,
-        status: 'pending', // قيد المراجعة — تؤكده الموظفة لاحقاً
+        status: (isManual && manualStatus) ? manualStatus : 'pending', // اليدوي: حسب اختيار الموظفة | الأونلاين: قيد المراجعة
         payment_status: payment_status || 'paid',
         amount: amount || null,
         notes: JSON.stringify({
@@ -102,6 +132,19 @@ export async function POST(req: NextRequest) {
           is_gift: !!is_gift,
           gift_recipient_phone: gift_recipient_phone || null,
           gift_message: gift_message || null,
+          // ─── بيانات الحجز اليدوي (تُعرض في كرت الحجز) ───
+          ...(isManual ? {
+            manual: true,
+            subscriber_name: subscriber_name || null,
+            subscriber_phone: subscriber_phone || null,
+            subscriber_id: subscriber_id || null,
+            subscriber_nationality: subscriber_nationality || null,
+            subscriber_address: subscriber_address || null,
+            beneficiary_name: beneficiary_name || null,
+            beneficiary_age: beneficiary_age || null,
+            beneficiary_relation: beneficiary_relation || null,
+            emergency_phone: emergency_phone || null,
+          } : {}),
         }),
       })
       .select('id')
@@ -171,11 +214,13 @@ export async function POST(req: NextRequest) {
     }
 
     // ═══ اجلب بيانات العميل (نستخدمها في الإيميل والواتساب) ═══
-    const { data: customer } = await supabase
-      .from('customers')
-      .select('full_name, phone, email')
-      .eq('id', customer_id)
-      .maybeSingle()
+    const { data: customer } = resolvedCustomerId
+      ? await supabase
+          .from('customers')
+          .select('full_name, phone, email')
+          .eq('id', resolvedCustomerId)
+          .maybeSingle()
+      : { data: null as any }
 
     // ═══ رسالة تأكيد الحجز عبر واتساب — fire-and-forget ═══
     // نقصّر الـ UUID للعرض (أول ٨ أحرف بحروف كبيرة، مع بادئة DBR-)
@@ -185,8 +230,12 @@ export async function POST(req: NextRequest) {
     // نجمع وعود إرسال الواتساب وننتظرها قبل الرد (يمنع قطعها في بيئة serverless)
     const waSends: Promise<any>[] = []
 
-    if (customer?.phone) {
-      const firstName = (customer.full_name || '').trim().split(/\s+/)[0] || 'عميلنا الكريم'
+    // للحجز اليدوي: أرسل لجوال المشترك مباشرة (قد لا يوجد صف عميل مرتبط).
+    // لا نرسل تأكيداً للحجوزات الملغاة.
+    const waRecipientPhone = customer?.phone || (isManual ? subscriber_phone : null)
+    const waRecipientName  = customer?.full_name || (isManual ? subscriber_name : null)
+    if (waRecipientPhone && !(isManual && manualStatus === 'cancelled')) {
+      const firstName = (waRecipientName || '').trim().split(/\s+/)[0] || 'عميلنا الكريم'
       // الطبية: رسالة المحامي القانونية (تبقى كما هي). العادية: رسالة الاستلام/المراجعة
       const customerMessage = isMedical
         ? TEMPLATES.medicalBookingRequest(firstName, shortBookingId)
@@ -200,7 +249,7 @@ export async function POST(req: NextRequest) {
           )
 
       waSends.push(
-        sendWhatsApp(customer.phone, customerMessage)
+        sendWhatsApp(waRecipientPhone, customerMessage)
           .then(r => {
             if (!r.success) {
               console.warn('⚠️  [save-booking] customer WhatsApp failed:', r.error)
@@ -244,8 +293,8 @@ export async function POST(req: NextRequest) {
           shortBookingId
         )
       : TEMPLATES.adminNewBooking(
-          customer?.full_name || '—',
-          customer?.phone || '—',
+          customer?.full_name || (isManual ? subscriber_name : '') || '—',
+          customer?.phone || (isManual ? subscriber_phone : '') || '—',
           getServiceTitle(service_key, service_category),
           package_label || '—',
           (typeof amount === 'number' && amount > 0) ? amount : null,

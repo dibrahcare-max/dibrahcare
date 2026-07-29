@@ -581,6 +581,7 @@ export default function AdminPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        manual: true,
         subscriber_name: form.subscriber_name,
         subscriber_phone: form.subscriber_phone,
         subscriber_id: form.subscriber_id,
@@ -590,10 +591,12 @@ export default function AdminPage() {
         beneficiary_age: form.beneficiary_age,
         beneficiary_relation: form.beneficiary_relation,
         emergency_phone: form.emergency_phone,
-        package: form.package,
+        package_id: form.package,
+        package_label: PKG_LABELS[form.package] || form.package,
         start_date: form.start_date,
         start_time: form.start_time,
-        totalPrice: form.price,
+        amount: form.price,
+        status: form.status,
         trackId: 'MANUAL-' + Date.now(),
       }),
     })
@@ -1593,12 +1596,18 @@ export default function AdminPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16 }} className="admin-cards">
                   {filtered.map(b => {
                     const st = STATUS_LABELS[b.status] || STATUS_LABELS.pending
+                    // بيانات الحجز اليدوي مخزّنة في notes (لا يوجد صف عميل مرتبط دائماً)
+                    let cmeta: any = {}
+                    try { if (b.notes && b.notes.trim().startsWith('{')) cmeta = JSON.parse(b.notes) } catch {}
+                    const displayName  = b.customers?.full_name || cmeta.subscriber_name || cmeta.full_name || '—'
+                    const displayPhone = b.customers?.phone || cmeta.subscriber_phone || '—'
+                    const displayBenef = b.beneficiary_name || cmeta.beneficiary_name || '—'
                     return (
                       <div key={b.id} style={{ background: 'white', borderRadius: 20, border: '1px solid rgba(95,97,87,.1)', boxShadow: '0 2px 12px rgba(95,97,87,.05)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                         {/* Card Header */}
                         <div style={{ background: 'var(--dark)', padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <div style={{ fontWeight: 900, color: '#F6F0D7', fontSize: '.9rem' }}>{PKG_LABELS[b.package] || b.package}</div>
+                            <div style={{ fontWeight: 900, color: '#F6F0D7', fontSize: '.9rem' }}>{PKG_LABELS[b.package || cmeta.package_id] || cmeta.package_label || b.package || '—'}</div>
                             {b.service_type === 'other' && <span style={{ fontSize: '.65rem', fontWeight: 800, padding: '2px 8px', borderRadius: 20, background: '#e2ecd3', color: '#5f6157' }}>✨ حسب الطلب</span>}
                           </div>
                           <span style={{ fontSize: '.7rem', fontWeight: 800, padding: '3px 10px', borderRadius: 20, background: st.color + '25', color: st.color, border: `1px solid ${st.color}40` }}>{st.label}</span>
@@ -1606,9 +1615,9 @@ export default function AdminPage() {
                         {/* Card Body */}
                         <div style={{ padding: '16px 18px', flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
                           <div>
-                            <div style={{ fontWeight: 900, color: 'var(--dark)', fontSize: '.92rem' }}>{b.customers?.full_name || '—'}</div>
-                            <div style={{ fontSize: '.8rem', color: 'var(--muted)', marginTop: 2 }}>{b.customers?.phone || '—'}</div>
-                            <div style={{ fontSize: '.78rem', color: 'rgba(95,97,87,.5)', marginTop: 2 }}>المستفيد: {b.beneficiary_name}</div>
+                            <div style={{ fontWeight: 900, color: 'var(--dark)', fontSize: '.92rem' }}>{displayName}</div>
+                            <div style={{ fontSize: '.8rem', color: 'var(--muted)', marginTop: 2 }}>{displayPhone}</div>
+                            <div style={{ fontSize: '.78rem', color: 'rgba(95,97,87,.5)', marginTop: 2 }}>المستفيد: {displayBenef}</div>
                           </div>
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, fontSize: '.8rem' }}>
                             {(() => {
@@ -1710,7 +1719,7 @@ export default function AdminPage() {
                             style={{ padding: '9px', background: '#6b5ca5', color: 'white', border: 'none', borderRadius: 8, fontFamily: 'inherit', fontWeight: 800, fontSize: '.8rem', cursor: 'pointer' }}>
                             📋 التفاصيل
                           </button>
-                          <button onClick={() => whatsapp(b.customers?.phone || '', b.customers?.full_name || '', b.package, b.start_date)}
+                          <button onClick={() => whatsapp(displayPhone !== '—' ? displayPhone : '', displayName !== '—' ? displayName : '', b.package, b.start_date)}
                             style={{ padding: '9px', background: '#25D366', color: 'white', border: 'none', borderRadius: 8, fontFamily: 'inherit', fontWeight: 800, fontSize: '.8rem', cursor: 'pointer' }}>
                             💬 واتساب
                           </button>
