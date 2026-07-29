@@ -59,6 +59,8 @@ export async function POST(req: NextRequest) {
       beneficiary_age,
       beneficiary_relation,
       emergency_phone,
+      subscriber_email,
+      subscriber_short_address,
       status: manualStatus,
     } = body
 
@@ -73,12 +75,76 @@ export async function POST(req: NextRequest) {
       if (isManual && subscriber_phone) {
         const rawPhone = String(subscriber_phone).trim()
         const intlPhone = rawPhone.replace(/^0/, '966')
+        const nid = subscriber_id ? String(subscriber_id).trim() : ''
+
+        // 1) ابحث عن عميل مطابق بالجوال أو الهوية (نربطه بدل ما ننشئ مكرر)
+        const orConds = [`phone.eq.${rawPhone}`, `phone.eq.${intlPhone}`]
+        if (nid) orConds.push(`national_id.eq.${nid}`)
         const { data: existingCustomer } = await supabase
           .from('customers')
           .select('id')
-          .or(`phone.eq.${rawPhone},phone.eq.${intlPhone}`)
+          .or(orConds.join(','))
           .maybeSingle()
-        resolvedCustomerId = existingCustomer?.id || null
+
+        if (existingCustomer?.id) {
+          resolvedCustomerId = existingCustomer.id
+        } else {
+          // 2) عميل جديد — الأعمدة الإلزامية في customers لازم تتعبأ بصيغ صحيحة
+          const fullName    = (subscriber_name || '').trim()
+          const nationality = (subscriber_nationality || '').trim()
+          const emergency   = emergency_phone ? String(emergency_phone).trim() : ''
+          const email       = (subscriber_email || '').toLowerCase().trim()
+          const shortAddr   = (subscriber_short_address || '').trim().toUpperCase()
+
+          const vErr =
+            !fullName ? 'اسم المشترك مطلوب' :
+            !/^[12]\d{9}$/.test(nid) ? 'رقم الهوية: ١٠ أرقام تبدأ بـ ١ أو ٢' :
+            !/^05\d{8}$/.test(rawPhone) ? 'رقم الجوال: ١٠ أرقام تبدأ بـ ٠٥' :
+            !nationality ? 'الجنسية مطلوبة' :
+            !/^05\d{8}$/.test(emergency) ? 'رقم الطوارئ: ١٠ أرقام تبدأ بـ ٠٥' :
+            !/^[A-Z]{4}\d{4}$/.test(shortAddr) ? 'العنوان الوطني المختصر: ٤ حروف + ٤ أرقام (مثل RYAR4321)' :
+            !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) ? 'صيغة الإيميل غير صحيحة' :
+            null
+          if (vErr) {
+            return NextResponse.json({ success: false, message: 'لإضافة عميل جديد — ' + vErr }, { status: 400 })
+          }
+
+          const { data: newCustomer, error: custErr } = await supabase
+            .from('customers')
+            .insert({
+              full_name: fullName,
+              national_id: nid,
+              phone: rawPhone,
+              nationality,
+              emergency_phone: emergency,
+              short_address: shortAddr,
+              email,
+              street: (subscriber_address || '').trim() || null,
+              city: 'الرياض',
+              referral_source: 'حجز يدوي',
+            })
+            .select('id')
+            .single()
+
+          if (newCustomer?.id) {
+            resolvedCustomerId = newCustomer.id
+          } else if ((custErr as any)?.code === '23505') {
+            // تعارض: مسجّل مسبقاً بجوال/هوية/إيميل — أعد البحث واربط
+            const { data: dup } = await supabase
+              .from('customers')
+              .select('id')
+              .or([...orConds, `email.eq.${email}`].join(','))
+              .maybeSingle()
+            if (dup?.id) {
+              resolvedCustomerId = dup.id
+            } else {
+              return NextResponse.json({ success: false, message: 'العميل مسجّل مسبقاً ببيانات مختلفة (جوال/هوية/إيميل)' }, { status: 409 })
+            }
+          } else {
+            console.error('[save-booking] فشل إنشاء عميل الحجز اليدوي:', custErr)
+            return NextResponse.json({ success: false, message: 'تعذّر إنشاء بيانات العميل، تحقق من الصيغ' }, { status: 400 })
+          }
+        }
       } else {
         return NextResponse.json({ success: false, message: 'بيانات العميل ناقصة' }, { status: 400 })
       }
