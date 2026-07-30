@@ -101,7 +101,8 @@ export async function POST(req: NextRequest) {
     const rows = codesToInsert.map(code => ({
       code,
       discount_type: discountType,
-      discount_percent: discountType === 'percent' ? percentage : 0,
+      // للمبلغ الثابت: قيمة صوريّة تمرّ على قيد CHECK (١٠٠ مسموحة)، ولا تُستخدم في الحساب — الاعتماد على discount_fixed
+      discount_percent: discountType === 'percent' ? percentage : 100,
       discount_fixed: discountType === 'fixed' ? fixedAmount : null,
       valid_until: validUntil.toISOString(),
       batch_label: batchLabel,
