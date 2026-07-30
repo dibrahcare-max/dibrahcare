@@ -52,6 +52,7 @@ function buildInvoiceHTML(data: {
   originalAmount: number
   discountCode: string | null
   discountPercent: number | null
+  discountLabel: string | null
   discountAmount: number
 }): string {
   const logoUrl = 'https://dibrahcare.com/images/dibrah-logo.png'
@@ -162,7 +163,7 @@ function buildInvoiceHTML(data: {
     <div class="totals-box">
       ${data.discountCode ? `
       <div class="total-row"><span class="total-lbl">السعر الأصلي</span><span class="total-val">${data.originalAmount.toFixed(2)} ر.س</span></div>
-      <div class="total-row" style="color:#e05c5c"><span class="total-lbl">خصم (${data.discountCode} — ${data.discountPercent}%)</span><span class="total-val">- ${data.discountAmount.toFixed(2)} ر.س</span></div>
+      <div class="total-row" style="color:#e05c5c"><span class="total-lbl">خصم (${data.discountCode}${data.discountLabel ? ` — ${data.discountLabel}` : ''})</span><span class="total-val">- ${data.discountAmount.toFixed(2)} ر.س</span></div>
       ` : ''}
       <div class="total-row"><span class="total-lbl">المجموع قبل الضريبة</span><span class="total-val">${data.subtotal.toFixed(2)} ر.س</span></div>
       <div class="total-row"><span class="total-lbl">ضريبة القيمة المضافة (15%)</span><span class="total-val">${data.vatAmount.toFixed(2)} ر.س</span></div>
@@ -221,6 +222,10 @@ export async function POST(req: NextRequest) {
     // استخرج بيانات الخصم من notes
     const discountCode    = notes.discount_code || null
     const discountPercent = notes.discount_percent || null
+    const discountType    = notes.discount_type || 'percent'
+    const discountLabel   = discountType === 'fixed'
+      ? (notes.discount_fixed != null ? `${Number(notes.discount_fixed).toLocaleString('ar-SA')} ريال` : 'مبلغ ثابت')
+      : (discountPercent ? `${discountPercent}%` : null)
     const originalAmount  = notes.subtotal ? parseFloat(notes.subtotal) : total
     const discountAmount  = notes.discount_amount ? parseFloat(notes.discount_amount) : 0
 
@@ -246,6 +251,7 @@ export async function POST(req: NextRequest) {
       originalAmount,
       discountCode,
       discountPercent,
+      discountLabel,
       discountAmount,
     }
 

@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     // ابحث عن الكود
     const { data, error } = await supabase
       .from('discount_codes')
-      .select('id, code, discount_percent, valid_from, valid_until, used, is_void, is_public, use_count, applies_to_package')
+      .select('id, code, discount_type, discount_percent, discount_fixed, valid_from, valid_until, used, is_void, is_public, use_count, applies_to_package')
       .eq('code', code)
       .maybeSingle()
 
@@ -78,7 +78,9 @@ export async function POST(req: NextRequest) {
       code: {
         id: data.id,
         code: data.code,
+        type: data.discount_type || 'percent',
         percent: data.discount_percent,
+        fixed: data.discount_fixed,
         is_public: data.is_public,
       },
     })

@@ -5,6 +5,8 @@ import Nav from '@/components/Nav'
 type DiscountCode = {
   id: string
   code: string
+  discount_type?: string
+  discount_fixed?: number | null
   discount_percent: number
   valid_from: string
   valid_until: string
@@ -42,6 +44,8 @@ export default function DiscountCodesAdminPage() {
 
   // ── نموذج التوليد ──
   const [genPercent, setGenPercent] = useState<number>(20)
+  const [genType, setGenType] = useState<'percent' | 'fixed'>('percent')
+  const [genFixed, setGenFixed] = useState<number>(50)
   const [genCount, setGenCount] = useState<number>(100)
   const [genMonths, setGenMonths] = useState<number>(6)
   const [genBatch, setGenBatch] = useState<string>('')
@@ -83,7 +87,9 @@ export default function DiscountCodesAdminPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          discountType: genType,
           percentage: genPercent,
+          fixedAmount: genFixed,
           count: genCount,
           validityMonths: genMonths,
           batchLabel: genBatch.trim() || null,
@@ -313,12 +319,22 @@ export default function DiscountCodesAdminPage() {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 2fr auto', gap: 12, alignItems: 'flex-end' }}>
               <div>
-                <label style={lblStyle}>نسبة الخصم</label>
-                <select value={genPercent} onChange={e => setGenPercent(parseInt(e.target.value, 10))} style={selStyle}>
-                  {[10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 95, 99, 100].map(p => (
-                    <option key={p} value={p}>{p}%</option>
-                  ))}
-                </select>
+                <label style={lblStyle}>الخصم</label>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <select value={genType} onChange={e => setGenType(e.target.value as 'percent' | 'fixed')} style={{ ...selStyle, flex: '0 0 auto', width: 'auto' }}>
+                    <option value="percent">%</option>
+                    <option value="fixed">ريال</option>
+                  </select>
+                  {genType === 'percent' ? (
+                    <select value={genPercent} onChange={e => setGenPercent(parseInt(e.target.value, 10))} style={{ ...selStyle, flex: 1 }}>
+                      {[10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 95, 99, 100].map(p => (
+                        <option key={p} value={p}>{p}%</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input type="number" min={1} max={100000} value={genFixed} onChange={e => setGenFixed(parseInt(e.target.value, 10) || 0)} placeholder="مثال: 50" style={{ ...inpStyle, flex: 1 }} />
+                  )}
+                </div>
               </div>
               <div>
                 <label style={lblStyle}>{genIsPublic ? 'عدد الأكواد' : 'عدد الأكواد'}</label>
@@ -435,7 +451,9 @@ export default function DiscountCodesAdminPage() {
                           </td>
                           <td style={tdStyle}>
                             <span style={{ background: '#fef3c7', color: '#92400e', padding: '3px 10px', borderRadius: 999, fontWeight: 800, fontSize: '.82rem' }}>
-                              {c.discount_percent}%
+                              {c.discount_type === 'fixed'
+                                ? `${Number(c.discount_fixed ?? 0).toLocaleString('ar-SA')} ريال`
+                                : `${c.discount_percent}%`}
                             </span>
                           </td>
                           <td style={tdStyle}>

@@ -121,6 +121,7 @@ export async function POST(req: NextRequest) {
       code: string;
       percent: number;
       discount_amount: number;
+      type: string;
     } | null = null
 
     const discountCodeId = body.discountCodeId
@@ -128,7 +129,7 @@ export async function POST(req: NextRequest) {
       try {
         const { data: codeRow } = await supabaseAdmin
           .from('discount_codes')
-          .select('id, code, discount_percent, valid_until, is_void, is_public, use_count, applies_to_package')
+          .select('id, code, discount_type, discount_percent, discount_fixed, valid_until, is_void, is_public, use_count, applies_to_package')
           .eq('id', discountCodeId)
           .maybeSingle()
 
@@ -145,15 +146,20 @@ export async function POST(req: NextRequest) {
           packageMatches
 
         if (isValid && codeRow) {
-          const discountAmt = Math.round(subtotal * codeRow.discount_percent / 100)
+          // المبلغ الثابت: مقيّد بألا يتجاوز الإجمالي | النسبة: كما كان تماماً
+          const discountAmt = codeRow.discount_type === 'fixed'
+            ? Math.min(Math.round(codeRow.discount_fixed || 0), subtotal)
+            : Math.round(subtotal * codeRow.discount_percent / 100)
           amount = subtotal - discountAmt
           appliedDiscount = {
             code_id: codeRow.id,
             code: codeRow.code,
             percent: codeRow.discount_percent,
             discount_amount: discountAmt,
+            type: codeRow.discount_type || 'percent',
           }
-          console.log(`✅ [payment] Discount applied: ${codeRow.code} (${codeRow.discount_percent}%) — saved ${discountAmt} ر`)
+          const logLabel = codeRow.discount_type === 'fixed' ? `${codeRow.discount_fixed} ر ثابت` : `${codeRow.discount_percent}%`
+          console.log(`✅ [payment] Discount applied: ${codeRow.code} (${logLabel}) — saved ${discountAmt} ر`)
         } else if (codeRow && !packageMatches) {
           console.warn(`⚠️  [payment] Discount code rejected: لا ينطبق على الباقة ${body.package} (مقيّد بـ ${codeRow.applies_to_package})`)
         } else {
@@ -204,6 +210,7 @@ export async function POST(req: NextRequest) {
         notes: appliedDiscount ? JSON.stringify({
           subtotal,
           discount_code: appliedDiscount.code,
+          discount_type: appliedDiscount.type,
           discount_percent: appliedDiscount.percent,
           discount_amount: appliedDiscount.discount_amount,
         }) : null,

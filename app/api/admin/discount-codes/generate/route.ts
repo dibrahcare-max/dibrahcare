@@ -38,7 +38,10 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
+    // نوع الخصم: 'percent' (افتراضي) أو 'fixed' (مبلغ ثابت بالريال)
+    const discountType = body.discountType === 'fixed' ? 'fixed' : 'percent'
     const percentage = parseInt(body.percentage, 10)
+    const fixedAmount = Math.round(Number(body.fixedAmount))
     const count = parseInt(body.count, 10)
     const validityMonths = parseInt(body.validityMonths, 10)
     const batchLabel = String(body.batchLabel || '').trim() || null
@@ -48,9 +51,16 @@ export async function POST(req: NextRequest) {
     const VALID_PACKAGES = ['daily_4', 'daily_8', 'weekly_4', 'weekly_8', 'monthly_4', 'monthly_8', 'ramadan_2']
     const appliesToPackage = VALID_PACKAGES.includes(body.appliesToPackage) ? body.appliesToPackage : null
 
-    // تحقق
-    if (![10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 95, 99, 100].includes(percentage)) {
-      return NextResponse.json({ success: false, message: 'نسبة الخصم غير صالحة' }, { status: 400 })
+    // تحقق حسب نوع الخصم
+    if (discountType === 'percent') {
+      if (![10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 95, 99, 100].includes(percentage)) {
+        return NextResponse.json({ success: false, message: 'نسبة الخصم غير صالحة' }, { status: 400 })
+      }
+    } else {
+      // مبلغ ثابت: رقم موجب معقول
+      if (!Number.isFinite(fixedAmount) || fixedAmount < 1 || fixedAmount > 100000) {
+        return NextResponse.json({ success: false, message: 'مبلغ الخصم غير صالح (١ إلى ١٠٠٬٠٠٠ ريال)' }, { status: 400 })
+      }
     }
     if (validityMonths < 1 || validityMonths > 24) {
       return NextResponse.json({ success: false, message: 'المدة يجب أن تكون بين 1 و 24 شهراً' }, { status: 400 })
@@ -90,7 +100,9 @@ export async function POST(req: NextRequest) {
 
     const rows = codesToInsert.map(code => ({
       code,
-      discount_percent: percentage,
+      discount_type: discountType,
+      discount_percent: discountType === 'percent' ? percentage : 0,
+      discount_fixed: discountType === 'fixed' ? fixedAmount : null,
       valid_until: validUntil.toISOString(),
       batch_label: batchLabel,
       is_public: isPublic,
@@ -100,7 +112,7 @@ export async function POST(req: NextRequest) {
     const { data, error } = await supabase
       .from('discount_codes')
       .insert(rows)
-      .select('code, discount_percent, valid_until, batch_label, is_public')
+      .select('code, discount_type, discount_percent, discount_fixed, valid_until, batch_label, is_public')
 
     if (error) {
       console.error('discount-codes generate error:', error)

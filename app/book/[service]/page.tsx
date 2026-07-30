@@ -471,7 +471,7 @@ function BookingPage() {
 
   // discount code (كود الخصم)
   const [discountInput, setDiscountInput] = useState('')
-  const [appliedCode, setAppliedCode] = useState<{ id: string; code: string; percent: number; is_public: boolean } | null>(null)
+  const [appliedCode, setAppliedCode] = useState<{ id: string; code: string; type?: string; percent: number; fixed?: number | null; is_public: boolean } | null>(null)
   const [validatingCode, setValidatingCode] = useState(false)
   const [discountMessage, setDiscountMessage] = useState('')
 
@@ -595,8 +595,16 @@ function BookingPage() {
     1
   ) : 0
   // ─── خصم كود الخصم (إذا طُبّق) ───
-  const discountAmount = appliedCode ? Math.round(subtotal * appliedCode.percent / 100) : 0
+  const discountAmount = appliedCode
+    ? (appliedCode.type === 'fixed'
+        ? Math.min(Math.round(appliedCode.fixed || 0), subtotal)
+        : Math.round(subtotal * appliedCode.percent / 100))
+    : 0
   const totalPrice = subtotal - discountAmount
+  // نص وصف الخصم (٢٠٪ أو ٥٠ ريال)
+  const discountLabel = appliedCode
+    ? (appliedCode.type === 'fixed' ? `${(appliedCode.fixed || 0).toLocaleString('ar-SA')} ريال` : `${appliedCode.percent}%`)
+    : ''
 
   // ─── التحقق من بيانات المستفيد (الفورم الجديد) ───
   function validateBeneficiaryForm(b: BeneficiaryForm): string {
@@ -849,7 +857,9 @@ function BookingPage() {
           // ─── كود الخصم (إذا طُبّق) ───
           discountCodeId:      appliedCode?.id      || null,
           discountCodeText:    appliedCode?.code    || null,
+          discountType:        appliedCode?.type    || 'percent',
           discountPercent:     appliedCode?.percent || null,
+          discountFixed:       appliedCode?.fixed   || null,
           subtotal,
           discountAmount,
         }),
@@ -876,7 +886,9 @@ function BookingPage() {
         // ─── معلومات الخصم للـ save-booking ───
         discount_code_id:   appliedCode?.id      || null,
         discount_code:      appliedCode?.code    || null,
+        discount_type:      appliedCode?.type    || 'percent',
         discount_percent:   appliedCode?.percent || null,
+        discount_fixed:     appliedCode?.fixed   || null,
         subtotal,
         discount_amount:    discountAmount,
         // ─── بيانات الإهداء ───
@@ -1616,7 +1628,7 @@ function BookingPage() {
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                       padding: '10px 14px', background: '#dcfce7', borderRadius: 10, color: '#166534', fontWeight: 700, fontSize: '.9rem',
                     }}>
-                      <span>✅ <span style={{ fontFamily: 'monospace', fontWeight: 800 }}>{appliedCode.code}</span> — خصم {appliedCode.percent}%</span>
+                      <span>✅ <span style={{ fontFamily: 'monospace', fontWeight: 800 }}>{appliedCode.code}</span> — خصم {discountLabel}</span>
                       <button type="button" onClick={removeDiscountCode} style={{
                         background: 'none', border: 'none', color: '#991b1b', fontWeight: 700, fontSize: '.82rem', cursor: 'pointer', textDecoration: 'underline',
                       }}>إزالة</button>
@@ -1667,7 +1679,7 @@ function BookingPage() {
                         <span>{subtotal.toLocaleString('ar-SA')} ريال</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, fontSize: '.92rem', color: '#16a34a', fontWeight: 700 }}>
-                        <span>الخصم ({appliedCode.percent}%)</span>
+                        <span>الخصم ({discountLabel})</span>
                         <span>− {discountAmount.toLocaleString('ar-SA')} ريال</span>
                       </div>
                     </>
@@ -1859,7 +1871,10 @@ function BookingPage() {
       const d = await res.json()
       if (d.success && d.code) {
         setAppliedCode(d.code)
-        setDiscountMessage(`✅ تم تطبيق خصم ${d.code.percent}%`)
+        const lbl = d.code.type === 'fixed'
+          ? `${(d.code.fixed || 0).toLocaleString('ar-SA')} ريال`
+          : `${d.code.percent}%`
+        setDiscountMessage(`✅ تم تطبيق خصم ${lbl}`)
       } else {
         setAppliedCode(null)
         setDiscountMessage(`❌ ${d.message || 'الكود غير صالح'}`)

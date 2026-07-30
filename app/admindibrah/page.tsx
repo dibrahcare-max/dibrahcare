@@ -668,6 +668,10 @@ export default function AdminPage() {
     const discountAmount = meta.discount_amount
     const discountCode   = meta.discount_code
     const discountPct    = meta.discount_percent
+    const discountType   = meta.discount_type || 'percent'
+    const discountLabel  = discountType === 'fixed'
+      ? (meta.discount_fixed != null ? `${Number(meta.discount_fixed).toLocaleString('ar-SA')} ريال` : 'مبلغ ثابت')
+      : (discountPct ? `${discountPct}%` : '')
     const finalAmount    = (b as any).amount ?? b.price ?? ''
     const trackId        = meta.trackId || meta.track_id || (b as any).track_id || ''
     const paymentId      = meta.paymentId || meta.payment_id || (b as any).payment_id || ''
@@ -733,7 +737,7 @@ export default function AdminPage() {
     // ─── الدفع (مع تفصيل الخصم — مهم للضرائب والفوترة) ───
     'المبلغ الأصلي':       subtotal ?? finalAmount,
     'كود الخصم':           discountCode || '',
-    'نسبة الخصم':          discountPct ? `${discountPct}%` : '',
+    'قيمة الخصم':          discountLabel || '',
     'مبلغ الخصم':          discountAmount ?? '',
     'المبلغ المدفوع':      finalAmount,
     'رقم التتبع':         trackId,
@@ -1643,6 +1647,10 @@ export default function AdminPage() {
                               const discountAmount = meta.discount_amount
                               const discountCode   = meta.discount_code
                               const discountPct    = meta.discount_percent
+                              const discountType   = meta.discount_type || 'percent'
+                              const discountLbl    = discountType === 'fixed'
+                                ? (meta.discount_fixed != null ? `${Number(meta.discount_fixed).toLocaleString('ar-SA')} ريال` : 'مبلغ ثابت')
+                                : `خصم ${discountPct}%`
                               const hasDiscount    = !!(discountCode && discountAmount > 0)
                               return (
                                 <>
@@ -1660,7 +1668,7 @@ export default function AdminPage() {
                                         💰 المبلغ الأصلي: <span style={{ textDecoration: 'line-through', color: '#888' }}>{subtotal?.toLocaleString('ar-SA')} ر</span>
                                       </div>
                                       <div style={{ fontSize: '.72rem', color: '#16a34a', fontWeight: 700 }}>
-                                        🎟️ خصم {discountPct}% (<span style={{ fontFamily: 'monospace' }}>{discountCode}</span>): − {discountAmount?.toLocaleString('ar-SA')} ر
+                                        🎟️ {discountType === 'fixed' ? `خصم ${discountLbl}` : discountLbl} (<span style={{ fontFamily: 'monospace' }}>{discountCode}</span>): − {discountAmount?.toLocaleString('ar-SA')} ر
                                       </div>
                                       <div style={{ fontSize: '.78rem', color: 'var(--dark)', fontWeight: 800 }}>
                                         ✅ المدفوع: {amount?.toLocaleString('ar-SA')} ر

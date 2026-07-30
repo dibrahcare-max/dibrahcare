@@ -41,7 +41,9 @@ export async function POST(req: NextRequest) {
       // ─── معلومات كود الخصم ───
       discount_code_id,
       discount_code,
+      discount_type,
       discount_percent,
+      discount_fixed,
       subtotal,
       discount_amount,
       // ─── بيانات الإهداء ───
@@ -191,7 +193,9 @@ export async function POST(req: NextRequest) {
           paymentId,
           // ─── معلومات الخصم في الملاحظات ───
           discount_code: discount_code || null,
+          discount_type: discount_type || null,
           discount_percent: discount_percent || null,
+          discount_fixed: discount_fixed || null,
           subtotal: subtotal || null,
           discount_amount: discount_amount || null,
           // ─── معلومات الإهداء ───
