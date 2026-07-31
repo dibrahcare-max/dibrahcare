@@ -557,10 +557,11 @@ function BookingPage() {
         if (typeof d.startTime === 'string') setStartTime(d.startTime)
         if (typeof d.agreed === 'boolean') setAgreed(d.agreed)
         if (typeof d.childCount === 'number') setChildCount(d.childCount)
-        if (Array.isArray(d.children)) setChildren(d.children)
-        if (d.elderly && typeof d.elderly === 'object') setElderly(d.elderly)
+        // ندمج مع القيم الافتراضية الحالية حتى لو المسودة قديمة وينقصها حقول جديدة (يمنع الأعطال)
+        if (Array.isArray(d.children)) setChildren(d.children.map((x: any) => ({ ...NEW_CHILD, ...x })))
+        if (d.elderly && typeof d.elderly === 'object') setElderly({ ...INITIAL_ELDERLY, ...d.elderly })
         if (typeof d.beneficiaryCount === 'number') setBeneficiaryCount(d.beneficiaryCount)
-        if (Array.isArray(d.beneficiaries)) setBeneficiaries(d.beneficiaries)
+        if (Array.isArray(d.beneficiaries)) setBeneficiaries(d.beneficiaries.map((x: any) => ({ ...NEW_BENEFICIARY, ...x })))
         if (typeof d.isGift === 'boolean') setIsGift(d.isGift)
         if (typeof d.giftRecipientPhone === 'string') setGiftRecipientPhone(d.giftRecipientPhone)
         if (typeof d.giftMessage === 'string') setGiftMessage(d.giftMessage)
@@ -1488,14 +1489,14 @@ function BookingPage() {
                         <>
                           <YesNoNote
                             question="هل يعاني من أمراض صحية أو مزمنة؟"
-                            value={b.health}
+                            value={b.health || { answer: '', note: '' }}
                             onChange={v => updateBeneficiary(idx, { ...b, health: v })}
                             requireNoteOnYes
                             placeholderNote="اذكر الأمراض"
                           />
                           <YesNoNote
                             question="هل يستعمل أدوية؟"
-                            value={b.medications}
+                            value={b.medications || { answer: '', note: '' }}
                             onChange={v => updateBeneficiary(idx, { ...b, medications: v })}
                             requireNoteOnYes
                             placeholderNote="اذكر الأدوية وطريقة الاستخدام"
