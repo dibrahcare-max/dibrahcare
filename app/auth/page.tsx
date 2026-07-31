@@ -219,19 +219,19 @@ function AuthInner() {
     }
   }
 
-  // أثناء فحص الجلسة: مؤشّر تحميل بدل صندوق الدخول (يمنع الوميض)
+  // أثناء فحص الجلسة: شعار دِبرة بنبضة خفيفة بدل صندوق الدخول (يمنع الوميض)
   if (checkingSession) {
     return (
       <div style={PAGE_STYLE} dir="rtl">
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, paddingTop: 40 }}>
-          <div style={{
-            width: 44, height: 44, borderRadius: '50%',
-            border: '3px solid rgba(95,97,87,.2)', borderTopColor: 'var(--dark)',
-            animation: 'dibrah-spin 0.8s linear infinite',
-          }} />
-          <div style={{ color: 'var(--muted)', fontSize: '.9rem', fontWeight: 600 }}>لحظة من فضلك...</div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18, paddingTop: 50 }}>
+          <img
+            src="/images/dibrah-logo.png"
+            alt="دِبرة"
+            style={{ height: 72, width: 'auto', animation: 'dibrah-pulse 1.4s ease-in-out infinite' }}
+          />
+          <div style={{ color: 'var(--muted)', fontSize: '.95rem', fontWeight: 600 }}>لحظة من فضلك...</div>
         </div>
-        <style>{`@keyframes dibrah-spin { to { transform: rotate(360deg); } }`}</style>
+        <style>{`@keyframes dibrah-pulse { 0%, 100% { opacity: .45; transform: scale(.97); } 50% { opacity: 1; transform: scale(1); } }`}</style>
       </div>
     )
   }
