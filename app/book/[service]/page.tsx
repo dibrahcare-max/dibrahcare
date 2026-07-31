@@ -408,6 +408,14 @@ type BeneficiaryForm = {
   national_id: string  // رقم الهوية (10 أرقام)
   phone: string        // رقم الجوال (05XXXXXXXX)
   recommendations: string  // توصيات مخصصة (نص حر إلزامي)
+  // ─── خانات إضافية خاصة بمرافقة الأطفال في السفر (child-travel فقط) ───
+  health: { answer: 'yes' | 'no' | ''; note: string }
+  medications: { answer: 'yes' | 'no' | ''; note: string }
+  independence: string   // يعتمد على نفسه في الأكل والشرب والحمام (نعم/لا)
+  instructions: string   // الالتزام بالتعليمات
+  emotions: string       // الانفعالات وقت الغضب
+  fears: string          // المخاوف والتأثر النفسي
+  hobbies: string        // الهوايات والميول
 }
 
 const NEW_BENEFICIARY: BeneficiaryForm = {
@@ -416,6 +424,13 @@ const NEW_BENEFICIARY: BeneficiaryForm = {
   national_id: '',
   phone: '',
   recommendations: '',
+  health: { answer: '', note: '' },
+  medications: { answer: '', note: '' },
+  independence: '',
+  instructions: '',
+  emotions: '',
+  fears: '',
+  hobbies: '',
 }
 
 type Customer = {
@@ -1467,6 +1482,58 @@ function BookingPage() {
                         rows={4}
                         placeholder="توصيات بما يختص بالتعامل مع المستفيد من ناحية مراعاة الجوانب النفسيه والصحية له فضلاً اذكرها لنحقق تعامل أفضل"
                       />
+
+                      {/* ─── خانات إضافية خاصة بمرافقة الأطفال في السفر ─── */}
+                      {serviceKey === 'child-travel' && (
+                        <>
+                          <YesNoNote
+                            question="هل يعاني من أمراض صحية أو مزمنة؟"
+                            value={b.health}
+                            onChange={v => updateBeneficiary(idx, { ...b, health: v })}
+                            requireNoteOnYes
+                            placeholderNote="اذكر الأمراض"
+                          />
+                          <YesNoNote
+                            question="هل يستعمل أدوية؟"
+                            value={b.medications}
+                            onChange={v => updateBeneficiary(idx, { ...b, medications: v })}
+                            requireNoteOnYes
+                            placeholderNote="اذكر الأدوية وطريقة الاستخدام"
+                          />
+                          <SelectField
+                            label="هل يعتمد على نفسه في الأكل والشرب والحمام؟"
+                            value={b.independence}
+                            onChange={v => updateBeneficiary(idx, { ...b, independence: v })}
+                            options={['نعم', 'لا']}
+                          />
+                          <SelectField
+                            label="الالتزام بالتعليمات"
+                            value={b.instructions}
+                            onChange={v => updateBeneficiary(idx, { ...b, instructions: v })}
+                            options={['يتجاوب بسرعة', 'يحتاج وقت', 'يرفض أحياناً']}
+                          />
+                          <TextField
+                            label="الانفعالات (كيف يتم التعامل معه وقت الغضب؟)"
+                            value={b.emotions}
+                            onChange={v => updateBeneficiary(idx, { ...b, emotions: v })}
+                            rows={2}
+                          />
+                          <TextField
+                            label="المخاوف والتأثر النفسي"
+                            value={b.fears}
+                            onChange={v => updateBeneficiary(idx, { ...b, fears: v })}
+                            rows={2}
+                            placeholder="مثال: الخوف من الصوت العالي، الظلام..."
+                          />
+                          <TextField
+                            label="الهوايات والميول"
+                            value={b.hobbies}
+                            onChange={v => updateBeneficiary(idx, { ...b, hobbies: v })}
+                            rows={2}
+                            placeholder="مثال: الرسم، اللعب بالمكعبات..."
+                          />
+                        </>
+                      )}
                     </div>
                   ))}
                 </>

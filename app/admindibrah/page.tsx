@@ -2619,6 +2619,13 @@ function DetailsContent({ data }: { data: any }) {
                   <Row label="رقم الهوية" value={b.national_id} />
                   <Row label="الجوال" value={b.phone} />
                   {b.recommendations && <Row label="توصيات خاصة" value={b.recommendations} />}
+                  {b.health && (b.health.answer === 'yes' || b.health.answer === 'no') && <Row label="أمراض مزمنة" value={b.health.answer === 'yes' ? (b.health.note ? `نعم — ${b.health.note}` : 'نعم') : 'لا'} />}
+                  {b.medications && (b.medications.answer === 'yes' || b.medications.answer === 'no') && <Row label="أدوية" value={b.medications.answer === 'yes' ? (b.medications.note ? `نعم — ${b.medications.note}` : 'نعم') : 'لا'} />}
+                  {b.independence && <Row label="يعتمد على نفسه (أكل/شرب/حمام)" value={b.independence} />}
+                  {b.instructions && <Row label="الالتزام بالتعليمات" value={b.instructions} />}
+                  {b.emotions && <Row label="الانفعالات وقت الغضب" value={b.emotions} />}
+                  {b.fears && <Row label="المخاوف والتأثر النفسي" value={b.fears} />}
+                  {b.hobbies && <Row label="الهوايات والميول" value={b.hobbies} />}
                 </div>
               ))}
             </Section>
