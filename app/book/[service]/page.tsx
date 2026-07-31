@@ -479,6 +479,8 @@ function BookingPage() {
   const [step, setStep] = useState<'form' | 'review'>('form')
   const [submitError, setSubmitError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  // هل استُرجعت المسودة؟ (نمنع الكتابة قبل الاسترجاع حتى لا تُمسح البيانات)
+  const [hydrated, setHydrated] = useState(false)
 
   // ─── جلب بيانات العميل من /api/auth/me ───
   useEffect(() => {
@@ -527,6 +529,51 @@ function BookingPage() {
       return [...prev, ...additions]
     })
   }, [beneficiaryCount]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ─── استرجاع مسودة الحجز (لو رجع العميل من صفحة الدفع لتعديل الباقة أو إضافة مستفيد) ───
+  useEffect(() => {
+    if (!serviceKey) { setHydrated(true); return }
+    try {
+      const raw = sessionStorage.getItem('dibrah_draft_' + serviceKey)
+      if (raw) {
+        const d = JSON.parse(raw)
+        if (typeof d.selectedPackage === 'string') setSelectedPackage(d.selectedPackage)
+        if (typeof d.startDate === 'string') setStartDate(d.startDate)
+        if (typeof d.startTime === 'string') setStartTime(d.startTime)
+        if (typeof d.agreed === 'boolean') setAgreed(d.agreed)
+        if (typeof d.childCount === 'number') setChildCount(d.childCount)
+        if (Array.isArray(d.children)) setChildren(d.children)
+        if (d.elderly && typeof d.elderly === 'object') setElderly(d.elderly)
+        if (typeof d.beneficiaryCount === 'number') setBeneficiaryCount(d.beneficiaryCount)
+        if (Array.isArray(d.beneficiaries)) setBeneficiaries(d.beneficiaries)
+        if (typeof d.isGift === 'boolean') setIsGift(d.isGift)
+        if (typeof d.giftRecipientPhone === 'string') setGiftRecipientPhone(d.giftRecipientPhone)
+        if (typeof d.giftMessage === 'string') setGiftMessage(d.giftMessage)
+        if (typeof d.discountInput === 'string') setDiscountInput(d.discountInput)
+        if (d.appliedCode !== undefined) setAppliedCode(d.appliedCode)
+        if (typeof d.discountMessage === 'string') setDiscountMessage(d.discountMessage)
+      }
+    } catch {}
+    setHydrated(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serviceKey])
+
+  // ─── حفظ المسودة تلقائياً أثناء التعبئة (يُبقي البيانات لو رجع من الدفع) ───
+  useEffect(() => {
+    if (!hydrated || !serviceKey) return
+    try {
+      sessionStorage.setItem('dibrah_draft_' + serviceKey, JSON.stringify({
+        selectedPackage, startDate, startTime, agreed,
+        childCount, children, elderly,
+        beneficiaryCount, beneficiaries,
+        isGift, giftRecipientPhone, giftMessage,
+        discountInput, appliedCode, discountMessage,
+      }))
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated, serviceKey, selectedPackage, startDate, startTime, agreed,
+      childCount, children, elderly, beneficiaryCount, beneficiaries,
+      isGift, giftRecipientPhone, giftMessage, discountInput, appliedCode, discountMessage])
 
   // ─── حماية: خدمة غير معروفة ───
   if (!serviceInfo) {

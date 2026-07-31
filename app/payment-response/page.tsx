@@ -80,6 +80,8 @@ function ResponseContent() {
             console.log('✅ [payment-response] Booking saved successfully')
             // امسح sessionStorage بعد الحفظ الناجح
             sessionStorage.removeItem('dibrah_booking')
+            // امسح مسودة نموذج الحجز لهذه الخدمة (حجز جديد يبدأ نظيف)
+            if (booking?.service_key) sessionStorage.removeItem('dibrah_draft_' + booking.service_key)
           } else {
             console.error('❌ [payment-response] save-booking returned failure:', data)
           }
