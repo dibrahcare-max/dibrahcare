@@ -121,6 +121,8 @@ function AuthInner() {
   const [error, setError]     = useState('')
   const [info, setInfo]       = useState('')
   const [countdown, setCountdown] = useState(0)
+  // نفحص الجلسة أولاً — نمنع وميض صندوق الدخول للمسجّلين مسبقاً
+  const [checkingSession, setCheckingSession] = useState(true)
 
   // عداد إعادة الإرسال
   useEffect(() => {
@@ -134,11 +136,16 @@ function AuthInner() {
     fetch('/api/auth/me')
       .then(r => r.json())
       .then(d => {
-        if (!d.authenticated) return
+        if (!d.authenticated) {
+          // غير مسجّل — أظهر صندوق الدخول
+          setCheckingSession(false)
+          return
+        }
 
         // مسجّل دخول — نفس منطق verify-otp:
         // complete → للخدمات (أو الوجهة المطلوبة)
         // new      → يكمل بياناته في /register
+        // (نُبقي مؤشّر التحميل ظاهراً حتى يتم التوجيه — بدون وميض الصندوق)
         if (d.status === 'complete') {
           router.replace(next)
         } else {
@@ -146,7 +153,10 @@ function AuthInner() {
           router.replace('/register?phone=' + encodeURIComponent(d.phone || '') + nextParam)
         }
       })
-      .catch(() => {})
+      .catch(() => {
+        // فشل الفحص — أظهر صندوق الدخول حتى لا يعلق المستخدم على مؤشّر التحميل
+        setCheckingSession(false)
+      })
   }, [next, router])
 
   const sendOtp = async () => {
@@ -207,6 +217,23 @@ function AuthInner() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // أثناء فحص الجلسة: مؤشّر تحميل بدل صندوق الدخول (يمنع الوميض)
+  if (checkingSession) {
+    return (
+      <div style={PAGE_STYLE} dir="rtl">
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, paddingTop: 40 }}>
+          <div style={{
+            width: 44, height: 44, borderRadius: '50%',
+            border: '3px solid rgba(95,97,87,.2)', borderTopColor: 'var(--dark)',
+            animation: 'dibrah-spin 0.8s linear infinite',
+          }} />
+          <div style={{ color: 'var(--muted)', fontSize: '.9rem', fontWeight: 600 }}>لحظة من فضلك...</div>
+        </div>
+        <style>{`@keyframes dibrah-spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    )
   }
 
   return (
