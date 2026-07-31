@@ -213,6 +213,10 @@ export async function POST(req: NextRequest) {
 
             // نحفظ فقط لو ما في booking_id مسبقاً (نمنع التكرار)
             if (attempt && !attempt.booking_id) {
+              // استخرج بيانات الخصم من سجل المحاولة (عشان يُستهلك الكود ويظهر في الحجز)
+              let disc: any = {}
+              try { if (attempt.notes) disc = JSON.parse(attempt.notes) } catch {}
+
               const saveRes = await fetch(`${baseUrl}/api/save-booking`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -230,6 +234,14 @@ export async function POST(req: NextRequest) {
                   amount:           attempt.amount,
                   trackId:          attempt.track_id,
                   paymentId:        paymentId || attempt.payment_id,
+                  // ─── بيانات الخصم (يضمن استهلاك الكود + عرضه لو الحفظ تم عبر هذا المسار) ───
+                  discount_code_id: disc.discount_code_id || null,
+                  discount_code:    disc.discount_code    || null,
+                  discount_type:    disc.discount_type    || null,
+                  discount_percent: disc.discount_percent || null,
+                  discount_fixed:   disc.discount_fixed   || null,
+                  subtotal:         disc.subtotal         || null,
+                  discount_amount:  disc.discount_amount  || null,
                 }),
               })
               const saveJson = await saveRes.json()

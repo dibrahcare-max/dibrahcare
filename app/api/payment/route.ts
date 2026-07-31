@@ -122,6 +122,7 @@ export async function POST(req: NextRequest) {
       percent: number;
       discount_amount: number;
       type: string;
+      fixed: number | null;
     } | null = null
 
     const discountCodeId = body.discountCodeId
@@ -157,6 +158,7 @@ export async function POST(req: NextRequest) {
             percent: codeRow.discount_percent,
             discount_amount: discountAmt,
             type: codeRow.discount_type || 'percent',
+            fixed: codeRow.discount_type === 'fixed' ? (codeRow.discount_fixed || 0) : null,
           }
           const logLabel = codeRow.discount_type === 'fixed' ? `${codeRow.discount_fixed} ر ثابت` : `${codeRow.discount_percent}%`
           console.log(`✅ [payment] Discount applied: ${codeRow.code} (${logLabel}) — saved ${discountAmt} ر`)
@@ -209,9 +211,11 @@ export async function POST(req: NextRequest) {
         // ─── معلومات الخصم (للسجل والمحاسبة) ───
         notes: appliedDiscount ? JSON.stringify({
           subtotal,
+          discount_code_id: appliedDiscount.code_id,
           discount_code: appliedDiscount.code,
           discount_type: appliedDiscount.type,
           discount_percent: appliedDiscount.percent,
+          discount_fixed: appliedDiscount.fixed,
           discount_amount: appliedDiscount.discount_amount,
         }) : null,
       }
